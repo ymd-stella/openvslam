@@ -49,7 +49,7 @@ public:
      * @param is_constant
      * @return
      */
-    shot_vertex* create_vertex(data::keyframe* keyfrm, const bool is_constant) {
+    shot_vertex* create_vertex(const std::shared_ptr<data::keyframe>& keyfrm, const bool is_constant) {
         return create_vertex(keyfrm->id_, keyfrm->get_cam_pose(), is_constant);
     }
 
@@ -76,7 +76,7 @@ public:
      * @param keyfrm
      * @return
      */
-    inline shot_vertex* get_vertex(data::keyframe* keyfrm) const {
+    inline shot_vertex* get_vertex(const std::shared_ptr<data::keyframe>& keyfrm) const {
         return get_vertex(keyfrm->id_);
     }
 
@@ -103,7 +103,7 @@ public:
      * @param keyfrm
      * @return
      */
-    inline unsigned int get_vertex_id(data::keyframe* keyfrm) const {
+    inline unsigned int get_vertex_id(const std::shared_ptr<data::keyframe>& keyfrm) const {
         return get_vertex_id(keyfrm->id_);
     }
 
@@ -145,7 +145,7 @@ public:
     /**
      * Contains the specified keyframe or not
      */
-    inline bool contain(data::keyframe* keyfrm) const {
+    inline bool contain(const std::shared_ptr<data::keyframe>& keyfrm) const {
         return 0 != vtx_container_.count(keyfrm->id_);
     }
 
