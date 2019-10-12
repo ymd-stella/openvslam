@@ -398,7 +398,7 @@ void tracking_module::update_local_keyframes() {
 
     // count the number of sharing landmarks between the current frame and each of the neighbor keyframes
     // key: keyframe, value: number of sharing landmarks
-    std::unordered_map<data::keyframe*, unsigned int> keyfrm_weights;
+    std::unordered_map<std::shared_ptr<data::keyframe>, unsigned int> keyfrm_weights;
     for (unsigned int idx = 0; idx < curr_frm_.num_keypts_; ++idx) {
         const auto& lm = curr_frm_.landmarks_.at(idx);
         if (!lm) {
@@ -422,7 +422,7 @@ void tracking_module::update_local_keyframes() {
     // set the aforementioned keyframes as local keyframes
     // and find the nearest keyframe
     unsigned int max_weight = 0;
-    data::keyframe* nearest_covisibility = nullptr;
+    std::shared_ptr<data::keyframe> nearest_covisibility = nullptr;
 
     local_keyfrms_.clear();
     local_keyfrms_.reserve(4 * keyfrm_weights.size());
@@ -448,7 +448,7 @@ void tracking_module::update_local_keyframes() {
     }
 
     // add the second-order keyframes to the local landmarks
-    auto add_local_keyframe = [this](data::keyframe* keyfrm) {
+    auto add_local_keyframe = [this](const std::shared_ptr<data::keyframe>& keyfrm) {
         if (!keyfrm) {
             return false;
         }
