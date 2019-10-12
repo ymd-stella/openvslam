@@ -259,7 +259,7 @@ void graph_optimizer::optimize(data::keyframe* loop_keyfrm, data::keyframe* curr
         }
 
         // 点群の位置を修正
-        for (auto lm : all_lms) {
+        for (const auto& lm : all_lms) {
             if (lm->will_be_erased()) {
                 continue;
             }

@@ -18,7 +18,7 @@ transform_optimizer::transform_optimizer(const bool fix_scale, const unsigned in
     : fix_scale_(fix_scale), num_iter_(num_iter) {}
 
 unsigned int transform_optimizer::optimize(data::keyframe* keyfrm_1, data::keyframe* keyfrm_2,
-                                           std::vector<data::landmark*>& matched_lms_in_keyfrm_2,
+                                           std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_keyfrm_2,
                                            ::g2o::Sim3& g2o_Sim3_12, const float chi_sq) const {
     const float sqrt_chi_sq = std::sqrt(chi_sq);
 
@@ -67,8 +67,8 @@ unsigned int transform_optimizer::optimize(data::keyframe* keyfrm_1, data::keyfr
             continue;
         }
 
-        auto lm_1 = lms_in_keyfrm_1.at(idx1);
-        auto lm_2 = matched_lms_in_keyfrm_2.at(idx1);
+        const auto& lm_1 = lms_in_keyfrm_1.at(idx1);
+        const auto& lm_2 = matched_lms_in_keyfrm_2.at(idx1);
 
         // 3次元点が両方存在するもののみを対象とする
         if (!lm_1 || !lm_2) {

@@ -36,7 +36,7 @@ public:
      * @param is_constant
      * @return
      */
-    landmark_vertex* create_vertex(data::landmark* lm, const bool is_constant) {
+    landmark_vertex* create_vertex(const std::shared_ptr<data::landmark>& lm, const bool is_constant) {
         return create_vertex(lm->id_, lm->get_pos_in_world(), is_constant);
     }
 
@@ -54,7 +54,7 @@ public:
      * @param lm
      * @return
      */
-    inline landmark_vertex* get_vertex(data::landmark* lm) const {
+    inline landmark_vertex* get_vertex(const std::shared_ptr<data::landmark>& lm) const {
         return get_vertex(lm->id_);
     }
 
@@ -72,7 +72,7 @@ public:
      * @param lm
      * @return
      */
-    inline unsigned int get_vertex_id(data::landmark* lm) const {
+    inline unsigned int get_vertex_id(std::shared_ptr<data::landmark>& lm) const {
         return get_vertex_id(lm->id_);
     }
 
@@ -106,7 +106,7 @@ public:
     /**
      * Contains the specified landmark or not
      */
-    inline bool contain(data::landmark* lm) const {
+    inline bool contain(std::shared_ptr<data::landmark>& lm) const {
         return 0 != vtx_container_.count(lm->id_);
     }
 

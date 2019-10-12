@@ -34,7 +34,7 @@ bool relocalizer::relocalize(data::frame& curr_frm) {
     }
     const auto num_candidates = reloc_candidates.size();
 
-    std::vector<std::vector<data::landmark*>> matched_landmarks(num_candidates);
+    std::vector<std::vector<std::shared_ptr<data::landmark>>> matched_landmarks(num_candidates);
 
     // 各候補について，BoW tree matcherで対応点を求める
     for (unsigned int i = 0; i < num_candidates; ++i) {
@@ -70,8 +70,8 @@ bool relocalizer::relocalize(data::frame& curr_frm) {
         const auto inlier_indices = util::resample_by_indices(valid_indices, pnp_solver->get_inlier_flags());
 
         // set 2D-3D matches for the pose optimization
-        curr_frm.landmarks_ = std::vector<data::landmark*>(curr_frm.num_keypts_, nullptr);
-        std::set<data::landmark*> already_found_landmarks;
+        curr_frm.landmarks_ = std::vector<std::shared_ptr<data::landmark>>(curr_frm.num_keypts_, nullptr);
+        std::set<std::shared_ptr<data::landmark>> already_found_landmarks;
         for (const auto idx : inlier_indices) {
             // 有効な3次元点のみをcurrent frameにセット
             curr_frm.landmarks_.at(idx) = matched_landmarks.at(i).at(idx);
@@ -153,7 +153,7 @@ bool relocalizer::relocalize(data::frame& curr_frm) {
     return false;
 }
 
-std::vector<unsigned int> relocalizer::extract_valid_indices(const std::vector<data::landmark*>& landmarks) const {
+std::vector<unsigned int> relocalizer::extract_valid_indices(const std::vector<std::shared_ptr<data::landmark>>& landmarks) const {
     std::vector<unsigned int> valid_indices;
     valid_indices.reserve(landmarks.size());
     for (unsigned int idx = 0; idx < landmarks.size(); ++idx) {
@@ -172,7 +172,7 @@ std::vector<unsigned int> relocalizer::extract_valid_indices(const std::vector<d
 std::unique_ptr<solve::pnp_solver> relocalizer::setup_pnp_solver(const std::vector<unsigned int>& valid_indices,
                                                                  const eigen_alloc_vector<Vec3_t>& bearings,
                                                                  const std::vector<cv::KeyPoint>& keypts,
-                                                                 const std::vector<data::landmark*>& matched_landmarks,
+                                                                 const std::vector<std::shared_ptr<data::landmark>>& matched_landmarks,
                                                                  const std::vector<float>& scale_factors) const {
     // resample valid elements
     const auto valid_bearings = util::resample_by_indices(bearings, valid_indices);

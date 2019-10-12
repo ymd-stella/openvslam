@@ -59,7 +59,7 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
             const auto& keyfrm_2_indices = itr_2->second;
 
             for (const auto idx_1 : keyfrm_1_indices) {
-                auto lm_1 = assoc_lms_in_keyfrm_1.at(idx_1);
+                const auto& lm_1 = assoc_lms_in_keyfrm_1.at(idx_1);
                 // 3次元点が存在"する"場合はスルー(triangulation前のmatchingであるため)
                 if (lm_1) {
                     continue;
@@ -78,7 +78,7 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
                 int best_idx_2 = -1;
 
                 for (const auto idx_2 : keyfrm_2_indices) {
-                    auto lm_2 = assoc_lms_in_keyfrm_2.at(idx_2);
+                    const auto& lm_2 = assoc_lms_in_keyfrm_2.at(idx_2);
                     // 3次元点が存在"する"場合はスルー(triangulation前のmatchingであるため)
                     if (lm_2) {
                         continue;
@@ -172,12 +172,12 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
 }
 
 unsigned int robust::match_frame_and_keyframe(data::frame& frm, data::keyframe* keyfrm,
-                                              std::vector<data::landmark*>& matched_lms_in_frm) {
+                                              std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) {
     // 初期化
     const auto num_frm_keypts = frm.num_keypts_;
     const auto keyfrm_lms = keyfrm->get_landmarks();
     unsigned int num_inlier_matches = 0;
-    matched_lms_in_frm = std::vector<data::landmark*>(num_frm_keypts, nullptr);
+    matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(num_frm_keypts, nullptr);
 
     // brute-force matchを計算
     std::vector<std::pair<int, int>> matches;
@@ -231,7 +231,7 @@ unsigned int robust::brute_force_match(data::frame& frm, data::keyframe* keyfrm,
 
     for (unsigned int idx_2 = 0; idx_2 < num_keypts_2; ++idx_2) {
         // 3次元点が有効なもののみ対象にする
-        auto lm_2 = lms_2.at(idx_2);
+        const auto& lm_2 = lms_2.at(idx_2);
         if (!lm_2) {
             continue;
         }

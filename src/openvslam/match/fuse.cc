@@ -9,8 +9,8 @@
 namespace openvslam {
 namespace match {
 
-unsigned int fuse::detect_duplication(data::keyframe* keyfrm, const Mat44_t& Sim3_cw, const std::vector<data::landmark*>& landmarks_to_check,
-                                      const float margin, std::vector<data::landmark*>& duplicated_lms_in_keyfrm) {
+unsigned int fuse::detect_duplication(data::keyframe* keyfrm, const Mat44_t& Sim3_cw, const std::vector<std::shared_ptr<data::landmark>>& landmarks_to_check,
+                                      const float margin, std::vector<std::shared_ptr<data::landmark>>& duplicated_lms_in_keyfrm) {
     unsigned int num_fused = 0;
 
     // Sim3を分解してSE3にする
@@ -20,12 +20,12 @@ unsigned int fuse::detect_duplication(data::keyframe* keyfrm, const Mat44_t& Sim
     const Vec3_t trans_cw = Sim3_cw.block<3, 1>(0, 3) / s_cw;
     const Vec3_t cam_center = -rot_cw.transpose() * trans_cw;
 
-    duplicated_lms_in_keyfrm = std::vector<data::landmark*>(landmarks_to_check.size(), nullptr);
+    duplicated_lms_in_keyfrm = std::vector<std::shared_ptr<data::landmark>>(landmarks_to_check.size(), nullptr);
 
     const auto valid_lms_in_keyfrm = keyfrm->get_valid_landmarks();
 
     for (unsigned int i = 0; i < landmarks_to_check.size(); ++i) {
-        auto* lm = landmarks_to_check.at(i);
+        auto& lm = landmarks_to_check.at(i);
         if (lm->will_be_erased()) {
             continue;
         }
@@ -101,7 +101,7 @@ unsigned int fuse::detect_duplication(data::keyframe* keyfrm, const Mat44_t& Sim
             continue;
         }
 
-        auto* lm_in_keyfrm = keyfrm->get_landmark(best_idx);
+        auto& lm_in_keyfrm = keyfrm->get_landmark(best_idx);
         if (lm_in_keyfrm) {
             // keyframeのbest_idxに対応する3次元点が存在する -> 重複している場合
             if (!lm_in_keyfrm->will_be_erased()) {
@@ -129,7 +129,7 @@ unsigned int fuse::replace_duplication(data::keyframe* keyfrm, const T& landmark
     const Vec3_t trans_cw = keyfrm->get_translation();
     const Vec3_t cam_center = keyfrm->get_cam_center();
 
-    for (const auto lm : landmarks_to_check) {
+    for (const auto& lm : landmarks_to_check) {
         if (!lm) {
             continue;
         }
@@ -235,7 +235,7 @@ unsigned int fuse::replace_duplication(data::keyframe* keyfrm, const T& landmark
             continue;
         }
 
-        auto* lm_in_keyfrm = keyfrm->get_landmark(best_idx);
+        auto& lm_in_keyfrm = keyfrm->get_landmark(best_idx);
         if (lm_in_keyfrm) {
             // keyframeのbest_idxに対応する3次元点が存在する -> 重複している場合
             if (!lm_in_keyfrm->will_be_erased()) {
@@ -264,8 +264,8 @@ unsigned int fuse::replace_duplication(data::keyframe* keyfrm, const T& landmark
 }
 
 // 明示的に実体化しておく
-template unsigned int fuse::replace_duplication(data::keyframe*, const std::vector<data::landmark*>&, const float);
-template unsigned int fuse::replace_duplication(data::keyframe*, const std::unordered_set<data::landmark*>&, const float);
+template unsigned int fuse::replace_duplication(data::keyframe*, const std::vector<std::shared_ptr<data::landmark>>&, const float);
+template unsigned int fuse::replace_duplication(data::keyframe*, const std::unordered_set<std::shared_ptr<data::landmark>>&, const float);
 
 } // namespace match
 } // namespace openvslam
