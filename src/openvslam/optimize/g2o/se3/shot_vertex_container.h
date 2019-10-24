@@ -7,6 +7,7 @@
 #include "openvslam/optimize/g2o/se3/shot_vertex.h"
 
 #include <unordered_map>
+#include <memory>
 
 namespace openvslam {
 

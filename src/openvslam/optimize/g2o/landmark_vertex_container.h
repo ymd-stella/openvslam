@@ -6,6 +6,7 @@
 #include "openvslam/optimize/g2o/landmark_vertex.h"
 
 #include <unordered_map>
+#include <memory>
 
 namespace openvslam {
 
