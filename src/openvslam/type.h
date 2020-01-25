@@ -6,12 +6,20 @@
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <opencv2/core/types.hpp>
 
 namespace openvslam {
+
+// helper function for creating an object in a unique_ptr.
+
+template<typename T, typename... ArgTs>
+std::unique_ptr<T> make_unique(ArgTs&&... args) {
+    return std::unique_ptr<T>(new T(std::forward<ArgTs>(args)...));
+}
 
 // floating point type
 
