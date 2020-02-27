@@ -1,0 +1,8 @@
+linter:
+  cppcheck:
+    target: "src"
+    enable: "all"
+    std: "c++11"
+    language: "c++"
+  hadolint:
+    target: ["Dockerfile.desktop", "Dockerfile.socket"]
