@@ -150,9 +150,12 @@ void graph_node::update_covisibility_orders() {
     std::vector<std::pair<unsigned int, std::shared_ptr<keyframe>>> weight_keyfrm_pairs;
     weight_keyfrm_pairs.reserve(connected_keyfrms_and_weights_.size());
 
-    for (const auto& keyfrm_and_weight : connected_keyfrms_and_weights_) {
-        weight_keyfrm_pairs.emplace_back(std::make_pair(keyfrm_and_weight.second, keyfrm_and_weight.first.lock()));
-    }
+    std::transform(connected_keyfrms_and_weights_.begin(),
+                   connected_keyfrms_and_weights_.end(),
+                   weight_keyfrm_pairs.begin(),
+                   [](const std::weak_ptr<keyframe>&) {
+                       return std::make_pair(keyfrm_and_weight.second, keyfrm_and_weight.first.lock());
+                   });
 
     // sort with weights
     std::sort(weight_keyfrm_pairs.rbegin(), weight_keyfrm_pairs.rend());
