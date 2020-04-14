@@ -168,8 +168,9 @@ void landmark::compute_descriptor() {
     unsigned int best_idx = 0;
     for (unsigned idx = 0; idx < num_descs; ++idx) {
         std::vector<unsigned int> partial_hamm_dists(hamm_dists.at(idx).begin(), hamm_dists.at(idx).begin() + num_descs);
-        std::sort(partial_hamm_dists.begin(), partial_hamm_dists.end());
-        const auto median_dist = partial_hamm_dists.at(static_cast<unsigned int>(0.5 * (num_descs - 1)));
+        const auto median_idx = static_cast<unsigned int>(0.5 * (num_descs - 1));
+        std::nth_element(partial_hamm_dists.begin(), partial_hamm_dists.begin() + median_idx, partial_hamm_dists.end());
+        const auto median_dist = partial_hamm_dists.at(median_idx);
 
         if (median_dist < best_median_dist) {
             best_median_dist = median_dist;

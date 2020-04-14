@@ -349,9 +349,9 @@ float keyframe::compute_median_depth(const bool abs) const {
         depths.push_back(abs ? std::abs(pos_c_z) : pos_c_z);
     }
 
-    std::sort(depths.begin(), depths.end());
-
-    return depths.at((depths.size() - 1) / 2);
+    const auto median_idx = (depths.size() - 1) / 2;
+    std::nth_element(depths.begin(), depths.begin() + median_idx, depths.end());
+    return depths.at(median_idx);
 }
 
 void keyframe::set_not_to_be_erased() {
