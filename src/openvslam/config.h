@@ -1,8 +1,11 @@
 #ifndef OPENVSLAM_CONFIG_H
 #define OPENVSLAM_CONFIG_H
 
+#include <memory>
+
 #include "openvslam/camera/base.h"
 #include "openvslam/feature/orb_params.h"
+#include "openvslam/imu/config.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -36,6 +39,9 @@ public:
 
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;
+
+    //! IMU config
+    std::shared_ptr<imu::config> imu_config_ = nullptr;
 };
 
 } // namespace openvslam
