@@ -138,6 +138,10 @@ Mat44_t tracking_module::track_RGBD_image(const cv::Mat& img, const cv::Mat& dep
     return curr_frm_.cam_pose_cw_;
 }
 
+void tracking_module::queue_IMU_data(const imu::data& imu_data) {
+    imu_data_queue_.push_back(imu_data);
+}
+
 void tracking_module::reset() {
     spdlog::info("resetting system");
 

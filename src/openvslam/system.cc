@@ -277,6 +277,10 @@ Mat44_t system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap,
     return cam_pose_cw;
 }
 
+void system::feed_IMU_data(const imu::data& imu_data) {
+    tracker_->queue_IMU_data(imu_data);
+}
+
 void system::pause_tracker() {
     tracker_->request_pause();
 }
