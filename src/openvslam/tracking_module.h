@@ -135,6 +135,9 @@ protected:
     //! Main stream of the tracking module
     void track();
 
+    //! Preintegrate IMU data
+    void preintegrate_imu();
+
     //! Try to initialize with the current frame
     bool initialize();
 
@@ -233,6 +236,13 @@ protected:
     // for visual-inertial tracking
 
     std::deque<std::shared_ptr<imu::data>> imu_data_deque_;
+
+    //! inertial reference keyframe
+    data::keyframe* inertial_ref_keyfrm_ = nullptr;
+
+    std::shared_ptr<imu::preintegrated> imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
+
+    bool is_last_frm_valid_ = false;
 
     //-----------------------------------------
     // mapping module status

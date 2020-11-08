@@ -5,6 +5,8 @@
 #include "openvslam/camera/base.h"
 #include "openvslam/data/graph_node.h"
 #include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/imu/bias.h"
+#include "openvslam/imu/preintegrated.h"
 
 #include <set>
 #include <mutex>
@@ -284,6 +286,18 @@ public:
     const std::vector<float> level_sigma_sq_;
     //! list of 1 / sigma^2 for optimization
     const std::vector<float> inv_level_sigma_sq_;
+
+    //-----------------------------------------
+    // imu information
+    // ! inertial reference keyframe
+    keyframe* inertial_ref_keyfrm_ = nullptr;
+
+    // ! inertial referrer keyframe
+    keyframe* inertial_referrer_keyfrm_ = nullptr;
+
+    std::shared_ptr<imu::preintegrated> imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
+    imu::bias imu_bias_;
+    std::shared_ptr<imu::config> imu_config_ = nullptr;
 
 private:
     //-----------------------------------------

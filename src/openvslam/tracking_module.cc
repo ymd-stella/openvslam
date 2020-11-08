@@ -11,6 +11,9 @@
 #include "openvslam/match/projection.h"
 #include "openvslam/module/local_map_updater.h"
 #include "openvslam/util/image_converter.h"
+#include "openvslam/imu/bias.h"
+#include "openvslam/imu/preintegrated.h"
+#include "openvslam/imu/imu_util.h"
 
 #include <chrono>
 #include <unordered_map>
@@ -84,10 +87,10 @@ Mat44_t tracking_module::track_monocular_image(const cv::Mat& img, const double 
 
     // create current frame object
     if (tracking_state_ == tracker_state_t::NotInitialized || tracking_state_ == tracker_state_t::Initializing) {
-        curr_frm_ = data::frame(img_gray_, timestamp, ini_extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
+        curr_frm_ = data::frame(img_gray_, timestamp, ini_extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, cfg_->imu_config_, mask);
     }
     else {
-        curr_frm_ = data::frame(img_gray_, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
+        curr_frm_ = data::frame(img_gray_, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, cfg_->imu_config_, mask);
     }
 
     track();
@@ -108,7 +111,7 @@ Mat44_t tracking_module::track_stereo_image(const cv::Mat& left_img_rect, const 
     util::convert_to_grayscale(right_img_gray, camera_->color_order_);
 
     // create current frame object
-    curr_frm_ = data::frame(img_gray_, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
+    curr_frm_ = data::frame(img_gray_, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, cfg_->true_depth_thr_, cfg_->imu_config_, mask);
 
     track();
 
@@ -128,7 +131,7 @@ Mat44_t tracking_module::track_RGBD_image(const cv::Mat& img, const cv::Mat& dep
     util::convert_to_true_depth(img_depth, cfg_->depthmap_factor_);
 
     // create current frame object
-    curr_frm_ = data::frame(img_gray_, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, mask);
+    curr_frm_ = data::frame(img_gray_, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, cfg_->true_depth_thr_, cfg_->imu_config_, mask);
 
     track();
 
@@ -160,12 +163,72 @@ void tracking_module::reset() {
 
     last_reloc_frm_id_ = 0;
 
+    is_last_frm_valid_ = false;
+    inertial_ref_keyfrm_ = nullptr;
+    imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
+
     tracking_state_ = tracker_state_t::NotInitialized;
+}
+
+void tracking_module::preintegrate_imu() {
+    if (imu_data_deque_.size() < 2) {
+        spdlog::warn("not enough imu data: {}", imu_data_deque_.size());
+        return;
+    }
+    while (imu_data_deque_[1]->ts_ < last_frm_.timestamp_ + 1e-6) {
+        imu_data_deque_.pop_front();
+    }
+    if (imu_data_deque_.front()->ts_ > last_frm_.timestamp_ + 1e-6) {
+        spdlog::warn("not enough imu data (stamp): {} {}", imu_data_deque_.front()->ts_, last_frm_.timestamp_);
+        return;
+    }
+    unsigned int n = 0;
+    for (unsigned int i = 0; i < imu_data_deque_.size(); ++i) {
+        if (imu_data_deque_[i]->ts_ > curr_frm_.timestamp_ - 1e-6) {
+            n = i + 1;
+            break;
+        }
+    }
+    if (n < 2) {
+        spdlog::warn("not enough imu data in range: {}", n);
+        return;
+    }
+
+    imu::bias b;
+    if (inertial_ref_keyfrm_) {
+        b = inertial_ref_keyfrm_->imu_bias_;
+    }
+    auto imu_preintegrated = std::make_shared<imu::preintegrated>(b, curr_frm_.imu_config_);
+
+    for (unsigned int i = 0; i < n - 1; i++) {
+        double dt;
+        Vec3_t acc, gyr;
+        imu::imu_util::preprocess_imu(*imu_data_deque_[i], *imu_data_deque_[i + 1],
+                                      i == 0, i == n - 2,
+                                      last_frm_.timestamp_, curr_frm_.timestamp_,
+                                      acc, gyr, dt);
+
+        if (imu_preintegrated_from_inertial_ref_keyfrm_) {
+            imu_preintegrated_from_inertial_ref_keyfrm_->integrate_new_measurement(acc, gyr, dt);
+        }
+        imu_preintegrated->integrate_new_measurement(acc, gyr, dt);
+    }
+
+    curr_frm_.imu_preintegrated_ = imu_preintegrated;
+    if (imu_preintegrated_from_inertial_ref_keyfrm_) {
+        curr_frm_.imu_preintegrated_from_inertial_ref_keyfrm_ = imu_preintegrated_from_inertial_ref_keyfrm_;
+        if (inertial_ref_keyfrm_) {
+            curr_frm_.inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
+        }
+    }
 }
 
 void tracking_module::track() {
     if (tracking_state_ == tracker_state_t::NotInitialized) {
         tracking_state_ = tracker_state_t::Initializing;
+    }
+    else if (cfg_->imu_config_ && is_last_frm_valid_) {
+        preintegrate_imu();
     }
 
     last_tracking_state_ = tracking_state_;
@@ -180,21 +243,19 @@ void tracking_module::track() {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
     if (tracking_state_ == tracker_state_t::Initializing) {
-        if (!initialize()) {
-            return;
+        if (initialize()) {
+            // update the reference keyframe, local keyframes, and local landmarks
+            update_local_map();
+
+            // pass all of the keyframes to the mapping module
+            const auto keyfrms = map_db_->get_all_keyframes();
+            for (const auto keyfrm : keyfrms) {
+                mapper_->queue_keyframe(keyfrm);
+            }
+
+            // state transition to Tracking mode
+            tracking_state_ = tracker_state_t::Tracking;
         }
-
-        // update the reference keyframe, local keyframes, and local landmarks
-        update_local_map();
-
-        // pass all of the keyframes to the mapping module
-        const auto keyfrms = map_db_->get_all_keyframes();
-        for (const auto keyfrm : keyfrms) {
-            mapper_->queue_keyframe(keyfrm);
-        }
-
-        // state transition to Tracking mode
-        tracking_state_ = tracker_state_t::Tracking;
     }
     else {
         // apply replace of landmarks observed in the last frame
@@ -260,9 +321,14 @@ void tracking_module::track() {
 
     // update last frame
     last_frm_ = curr_frm_;
+    is_last_frm_valid_ = true;
 }
 
 bool tracking_module::initialize() {
+    if (cfg_->imu_config_ && initializer_.get_state() == module::initializer_state_t::NotReady) {
+        imu_preintegrated_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrated>(imu::bias(), curr_frm_.imu_config_);
+    }
+
     // try to initialize with the current frame
     initializer_.initialize(curr_frm_);
 
@@ -278,6 +344,24 @@ bool tracking_module::initialize() {
         return false;
     }
 
+    switch (camera_->setup_type_) {
+        case camera::setup_type_t::Monocular: {
+            inertial_ref_keyfrm_ = map_db_->origin_keyfrm_->inertial_referrer_keyfrm_;
+            break;
+        }
+        case camera::setup_type_t::Stereo:
+        case camera::setup_type_t::RGBD: {
+            inertial_ref_keyfrm_ = map_db_->origin_keyfrm_;
+            break;
+        }
+        default: {
+            throw std::runtime_error("Undefined camera setup");
+        }
+    }
+    if (cfg_->imu_config_) {
+        inertial_ref_keyfrm_->imu_preintegrated_from_inertial_ref_keyfrm_ = imu_preintegrated_from_inertial_ref_keyfrm_;
+        imu_preintegrated_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrated>(imu::bias(), curr_frm_.imu_config_);
+    }
     // succeeded
     return true;
 }
@@ -511,8 +595,20 @@ void tracking_module::insert_new_keyframe() {
     // insert the new keyframe
     const auto ref_keyfrm = keyfrm_inserter_.insert_new_keyframe(curr_frm_);
     // set the reference keyframe with the new keyframe
-    ref_keyfrm_ = ref_keyfrm ? ref_keyfrm : ref_keyfrm_;
-    curr_frm_.ref_keyfrm_ = ref_keyfrm_;
+    if (ref_keyfrm) {
+        ref_keyfrm_ = ref_keyfrm;
+        curr_frm_.ref_keyfrm_ = ref_keyfrm;
+
+        if (cfg_->imu_config_) {
+            // update inertial references
+            ref_keyfrm->inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
+            inertial_ref_keyfrm_->inertial_referrer_keyfrm_ = ref_keyfrm;
+            inertial_ref_keyfrm_ = ref_keyfrm;
+            imu_preintegrated_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrated>(
+                curr_frm_.imu_bias_,
+                curr_frm_.imu_config_);
+        }
+    }
 }
 
 void tracking_module::request_pause() {

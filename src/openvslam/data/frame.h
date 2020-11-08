@@ -5,9 +5,12 @@
 #include "openvslam/camera/base.h"
 #include "openvslam/util/converter.h"
 #include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/imu/preintegrated.h"
+#include "openvslam/imu/bias.h"
 
 #include <vector>
 #include <atomic>
+#include <memory>
 
 #include <opencv2/core.hpp>
 #include <Eigen/Core>
@@ -55,7 +58,7 @@ public:
      */
     frame(const cv::Mat& img_gray, const double timestamp,
           feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
+          camera::base* camera, const float depth_thr, const std::shared_ptr<imu::config>& imu_config = nullptr,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -72,7 +75,7 @@ public:
      */
     frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
           feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
+          camera::base* camera, const float depth_thr, const std::shared_ptr<imu::config>& imu_config = nullptr,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -88,7 +91,7 @@ public:
      */
     frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
           feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
+          camera::base* camera, const float depth_thr, const std::shared_ptr<imu::config>& imu_config = nullptr,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -227,6 +230,15 @@ public:
 
     //! reference keyframe for tracking
     keyframe* ref_keyfrm_ = nullptr;
+
+    // imu information
+    // ! inertial reference keyframe
+    keyframe* inertial_ref_keyfrm_ = nullptr;
+
+    std::shared_ptr<imu::preintegrated> imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
+    std::shared_ptr<imu::preintegrated> imu_preintegrated_ = nullptr;
+    imu::bias imu_bias_;
+    std::shared_ptr<imu::config> imu_config_ = nullptr;
 
     // ORB scale pyramid information
     //! number of scale levels

@@ -35,6 +35,11 @@ keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
       num_scale_levels_(frm.num_scale_levels_), scale_factor_(frm.scale_factor_),
       log_scale_factor_(frm.log_scale_factor_), scale_factors_(frm.scale_factors_),
       level_sigma_sq_(frm.level_sigma_sq_), inv_level_sigma_sq_(frm.inv_level_sigma_sq_),
+      // imu
+      inertial_ref_keyfrm_(frm.inertial_ref_keyfrm_),
+      imu_preintegrated_from_inertial_ref_keyfrm_(frm.imu_preintegrated_from_inertial_ref_keyfrm_),
+      imu_bias_(frm.imu_bias_),
+      imu_config_(frm.imu_config_),
       // observations
       landmarks_(frm.landmarks_),
       // databases
@@ -417,6 +422,13 @@ void keyframe::prepare_for_erasing() {
     graph_node_->erase_all_connections();
     // recover spanning tree
     graph_node_->recover_spanning_connections();
+
+    // update inertial references
+    if (inertial_referrer_keyfrm_ && inertial_ref_keyfrm_ && imu_preintegrated_from_inertial_ref_keyfrm_) {
+        inertial_referrer_keyfrm_->imu_preintegrated_from_inertial_ref_keyfrm_->merge_previous(*imu_preintegrated_from_inertial_ref_keyfrm_);
+        inertial_referrer_keyfrm_->inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
+        inertial_ref_keyfrm_->inertial_referrer_keyfrm_ = inertial_referrer_keyfrm_;
+    }
 
     // 3. update frame statistics
 
