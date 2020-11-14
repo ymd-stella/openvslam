@@ -36,6 +36,9 @@ public:
 
     //! to skew symmetric matrix
     static Mat33_t to_skew_symmetric_mat(const Vec3_t& vec);
+
+    static Mat33_t normalize_rotation(const Mat33_t& R);
+    static Mat33_t exp_so3(const Vec3_t& v);
 };
 
 } // namespace util

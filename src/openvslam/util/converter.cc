@@ -1,5 +1,7 @@
 #include "openvslam/util/converter.h"
 
+#include <Eigen/SVD>
+
 namespace openvslam {
 namespace util {
 
@@ -59,6 +61,25 @@ Mat33_t converter::to_skew_symmetric_mat(const Vec3_t& vec) {
         vec(2), 0, -vec(0),
         -vec(1), vec(0), 0;
     return skew;
+}
+
+Mat33_t converter::normalize_rotation(const Mat33_t& R) {
+    Eigen::JacobiSVD<Mat33_t> svd(R, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    return svd.matrixU() * svd.matrixV().transpose();
+}
+
+Mat33_t converter::exp_so3(const Vec3_t& v) {
+    const Mat33_t I = Mat33_t::Identity();
+    const double d_sq = v.squaredNorm();
+    const double d = sqrt(d_sq);
+    const Mat33_t W = to_skew_symmetric_mat(v);
+    const double eps = 1e-4;
+    if (d < eps) {
+        return I + W + 0.5 * W * W;
+    }
+    else {
+        return I + W * sin(d) / d + W * W * (1.0 - cos(d)) / d_sq;
+    }
 }
 
 } // namespace util
