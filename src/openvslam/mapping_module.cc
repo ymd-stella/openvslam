@@ -8,6 +8,7 @@
 #include "openvslam/match/robust.h"
 #include "openvslam/module/two_view_triangulator.h"
 #include "openvslam/solve/essential_solver.h"
+#include "openvslam/imu/imu_initializer.h"
 #include "openvslam/imu/imu_util.h"
 
 #include <unordered_set>
@@ -188,6 +189,19 @@ void mapping_module::initialize_imu() {
     cur_keyfrm_->velocity_ = cur_keyfrm_->inertial_ref_keyfrm_->velocity_;
 
     Mat33_t Rwg = imu::imu_util::compute_gravity_dir(keyfrms);
+
+    double scale = 1.0;
+    const auto imu_initializer = optimize::imu_initializer(200);
+    const auto all_keyfrms = map_db_->get_all_keyframes();
+    const double info_prior_gyr = 1e2;
+    const double info_prior_acc = is_monocular_ ? 1e10 : 1e5;
+    bool succeeded = imu_initializer.initialize(all_keyfrms, Rwg, scale, is_monocular_, false, info_prior_gyr, info_prior_acc);
+
+    if (!succeeded) {
+        return;
+    }
+
+    imu_initialized_ = true;
 }
 
 void mapping_module::store_new_keyframe() {
