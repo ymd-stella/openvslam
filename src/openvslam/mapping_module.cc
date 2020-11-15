@@ -201,7 +201,9 @@ void mapping_module::initialize_imu() {
         return;
     }
 
-    imu_initialized_ = true;
+    map_db_->apply_scale_and_gravity_direction(Rwg, scale);
+
+    imu_is_initialized_ = true;
 }
 
 void mapping_module::store_new_keyframe() {
