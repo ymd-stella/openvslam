@@ -93,6 +93,16 @@ public:
     Mat44_t get_cam_pose_inv() const;
 
     /**
+     * Get the imu pose
+     */
+    Mat44_t get_imu_pose() const;
+
+    /**
+     * Get the inverse of the imu pose
+     */
+    Mat44_t get_imu_pose_inv() const;
+
+    /**
      * Get the camera center
      */
     Vec3_t get_cam_center() const;
@@ -296,6 +306,7 @@ public:
     keyframe* inertial_referrer_keyfrm_ = nullptr;
 
     std::shared_ptr<imu::preintegrated> imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
+    Vec3_t velocity_ = Vec3_t::Zero();
     imu::bias imu_bias_;
     std::shared_ptr<imu::config> imu_config_ = nullptr;
 

@@ -98,6 +98,11 @@ public:
     //! (NOTE: this function does not wait for abort)
     void abort_local_BA();
 
+    //-----------------------------------------
+    // IMU
+    //! whether imu is initialized or not
+    bool imu_is_initialized() const { return imu_is_initialized_; }
+
 private:
     //-----------------------------------------
     // main process
@@ -117,6 +122,9 @@ private:
 
     //! Update the new keyframe
     void update_new_keyframe();
+
+    //! Initialize IMU
+    void initialize_imu();
 
     //! Get the first and second order covisibilities of current keyframe
     std::unordered_set<data::keyframe*> get_second_order_covisibilities(const unsigned int first_order_thr,
@@ -210,6 +218,11 @@ private:
 
     //! bridge flag to abort local BA
     bool abort_local_BA_ = false;
+
+    //-----------------------------------------
+    // IMU
+    //! whether imu is initialized or not
+    bool imu_is_initialized_ = false;
 
     //-----------------------------------------
     // others
