@@ -86,18 +86,19 @@ void preintegrated::integrate_new_measurement(const Vec3_t& acc, const Vec3_t& g
 }
 
 void preintegrated::integrate(const Vec3_t& acc, const Vec3_t& gyr, const double dt) {
+    // The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry"
     Vec3_t unbiased_acc = acc - b_.acc_;
     Vec3_t unbiased_gyr = gyr - b_.gyr_;
 
+    // (33)
     delta_position_ = delta_position_ + delta_velocity_ * dt + 0.5 * delta_rotation_ * unbiased_acc * dt * dt;
     delta_velocity_ = delta_velocity_ + delta_rotation_ * unbiased_acc * dt;
 
-    // Compute velocity and position
+    // Iterative Noise Propagation (Appendix A)
     Mat33_t w_acc;
     w_acc << 0, -unbiased_acc(2), unbiased_acc(1),
         unbiased_acc(2), 0, -unbiased_acc(0),
         -unbiased_acc(1), unbiased_acc(0), 0;
-    //Matrices to compute covariance
     MatRC_t<9, 9> A = MatRC_t<9, 9>::Identity();
     MatRC_t<9, 6> B = MatRC_t<9, 6>::Zero();
     A.block<3, 3>(3, 0) = -delta_rotation_ * dt * w_acc;
@@ -106,14 +107,14 @@ void preintegrated::integrate(const Vec3_t& acc, const Vec3_t& gyr, const double
     B.block<3, 3>(3, 3) = delta_rotation_ * dt;
     B.block<3, 3>(6, 3) = 0.5 * delta_rotation_ * dt * dt;
 
-    // Update position and velocity jacobians wrt bias correction
+    // Bias Correction via First-Order Updates (Appendix B)
     jacob_position_acc_ = jacob_position_acc_ + jacob_velocity_acc_ * dt - 0.5 * delta_rotation_ * dt * dt;
     jacob_position_gyr_ = jacob_position_gyr_ + jacob_velocity_gyr_ * dt
                           - 0.5 * delta_rotation_ * dt * dt * w_acc * jacob_rotation_gyr_;
     jacob_velocity_acc_ = jacob_velocity_acc_ - delta_rotation_ * dt;
     jacob_velocity_gyr_ = jacob_velocity_gyr_ - delta_rotation_ * dt * w_acc * jacob_rotation_gyr_;
 
-    // Update delta rotation
+    // (33)
     const Vec3_t v = (unbiased_gyr - b_.gyr_) * dt;
     const double d2 = v.squaredNorm();
     const double d = sqrt(d2);
@@ -132,21 +133,22 @@ void preintegrated::integrate(const Vec3_t& acc, const Vec3_t& gyr, const double
 
     delta_rotation_ = util::converter::normalize_rotation(delta_rotation_ * delta_rotation);
 
-    // Compute rotation parts of matrices A and B
+    // Compute rotation parts of matrices A and B (Appendix A)
     A.block<3, 3>(0, 0) = delta_rotation.transpose();
     B.block<3, 3>(0, 0) = right_jacobian * dt;
 
-    // Update covariance_
+    // Update covariance matrix (63)
     covariance_.block<9, 9>(0, 0) = A * covariance_.block<9, 9>(0, 0) * A.transpose()
                                     + B * initial_covariance_ * B.transpose();
+    // Update noise density parts of covariance matrix
     covariance_.block<6, 6>(9, 9) = covariance_.block<6, 6>(9, 9) + bias_covariance_;
     information_.block<9, 9>(0, 0) = covariance_.block<9, 9>(0, 0).ldlt().solve(MatRC_t<9, 9>::Identity());
     information_.block<6, 6>(9, 9) = (covariance_.block<6, 6>(9, 9).diagonal().cwiseInverse()).asDiagonal();
 
-    // Update rotation jacobian wrt bias correction
+    // Bias Correction via First-Order Updates (Appendix B)
     jacob_rotation_gyr_ = A.block<3, 3>(0, 0) * jacob_rotation_gyr_ - B.block<3, 3>(0, 0);
 
-    // Total integrated time
+    // Update total integrated time
     dt_ += dt;
 }
 

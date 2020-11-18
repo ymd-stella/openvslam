@@ -84,9 +84,10 @@ inline void inertial_gravity_scale_edge::computeError() {
     const Vec3_t g = gravity_dir_vtx->estimate() * gravity;
     const double s = scale_vtx->estimate();
 
-    const Vec3_t error_rotation = util::converter::log_so3(delta_rotation.transpose() * Riw1 * Rwi2);
-    const Vec3_t error_velocity = Riw1 * (s * (v2 - v1) - g * dt) - delta_velocity;
-    const Vec3_t error_position = Riw1 * (s * (twi2 - twi1 - v1 * dt) - 0.5 * g * dt * dt) - delta_position;
+    // The reference is "Inertial-Only Optimization for Visual-Inertial Initialization"
+    const Vec3_t error_rotation = util::converter::log_so3(delta_rotation.transpose() * Riw1 * Rwi2);        // (7)
+    const Vec3_t error_velocity = Riw1 * (s * (v2 - v1) - g * dt) - delta_velocity;                          // (8)
+    const Vec3_t error_position = Riw1 * (s * (twi2 - twi1 - v1 * dt) - 0.5 * g * dt * dt) - delta_position; // (9)
 
     _error << error_rotation, error_velocity, error_position;
 }
@@ -136,6 +137,7 @@ inline void inertial_gravity_scale_edge::linearizeOplus(std::vector<MatX_t>& jac
     const Mat33_t inv_right_jacobian = util::converter::inverse_right_jacobian_so3(util::converter::log_so3(error_rotation));
     const double dt = imu_preintegrated_->dt_;
 
+    // The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", Appendix C
     // Jacobians wrt Pose 1
     jacobianOplus[0].setZero();
     // rotation
@@ -173,15 +175,16 @@ inline void inertial_gravity_scale_edge::linearizeOplus(std::vector<MatX_t>& jac
     jacobianOplus[5].setZero();
     jacobianOplus[5].block<3, 3>(3, 0) = s * Riw1;
 
+    // The reference is "Inertial-Only Optimization for Visual-Inertial Initialization"
     // Jacobians wrt Gravity direction
     jacobianOplus[6].setZero();
-    jacobianOplus[6].block<3, 2>(3, 0) = -Riw1 * dGdTheta * dt;
-    jacobianOplus[6].block<3, 2>(6, 0) = -0.5 * Riw1 * dGdTheta * dt * dt;
+    jacobianOplus[6].block<3, 2>(3, 0) = -Riw1 * dGdTheta * dt;            // (17)
+    jacobianOplus[6].block<3, 2>(6, 0) = -0.5 * Riw1 * dGdTheta * dt * dt; // (18)
 
     // Jacobians wrt scale factor
     jacobianOplus[7].setZero();
-    jacobianOplus[7].block<3, 1>(3, 0) = Riw1 * (v2 - v1);
-    jacobianOplus[7].block<3, 1>(6, 0) = Riw1 * (twi2 - twi1 - v1 * dt);
+    jacobianOplus[7].block<3, 1>(3, 0) = Riw1 * (v2 - v1);               // (14)
+    jacobianOplus[7].block<3, 1>(6, 0) = Riw1 * (twi2 - twi1 - v1 * dt); // (15)
 }
 
 inline void inertial_gravity_scale_edge::linearizeOplus() {
