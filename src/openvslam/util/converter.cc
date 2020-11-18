@@ -89,7 +89,7 @@ Mat33_t converter::exp_so3(const Vec3_t& v) {
         return I + W + 0.5 * W * W;
     }
     else {
-        return I + W * sin(d) / d + W * W * (1.0 - cos(d)) / d_sq;
+        return I + W * std::sin(d) / d + W * W * (1.0 - std::cos(d)) / d_sq;
     }
 }
 

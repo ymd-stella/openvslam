@@ -116,20 +116,8 @@ void preintegrated::integrate(const Vec3_t& acc, const Vec3_t& gyr, const double
 
     // (33)
     const Vec3_t v = (unbiased_gyr - b_.gyr_) * dt;
-    const double d2 = v.squaredNorm();
-    const double d = sqrt(d2);
-    const Mat33_t W = util::converter::to_skew_symmetric_mat(v);
-    const double eps = 1e-4;
-    Mat33_t delta_rotation;
-    Mat33_t right_jacobian;
-    if (d < eps) {
-        delta_rotation = Mat33_t::Identity() + W;
-        right_jacobian = Mat33_t::Identity();
-    }
-    else {
-        delta_rotation = Mat33_t::Identity() + W * std::sin(d) / d + W * W * (1.0 - std::cos(d)) / d2;
-        right_jacobian = Mat33_t::Identity() - W * (1.0 - std::cos(d)) / d2 + W * W * (d - std::sin(d)) / (d2 * d);
-    }
+    Mat33_t delta_rotation = util::converter::exp_so3(v);
+    Mat33_t right_jacobian = util::converter::right_jacobian_so3(v);
 
     delta_rotation_ = util::converter::normalize_rotation(delta_rotation_ * delta_rotation);
 
