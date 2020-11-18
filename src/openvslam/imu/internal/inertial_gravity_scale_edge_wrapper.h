@@ -45,7 +45,7 @@ inline inertial_gravity_scale_edge_wrapper::inertial_gravity_scale_edge_wrapper(
     // 拘束条件を設定
     auto edge = new inertial_gravity_scale_edge();
 
-    edge->setInformation(imu_preintegrated->information_.block<9, 9>(0, 0));
+    edge->setInformation(imu_preintegrated->get_information().block<9, 9>(0, 0));
 
     edge->imu_preintegrated_ = imu_preintegrated;
 

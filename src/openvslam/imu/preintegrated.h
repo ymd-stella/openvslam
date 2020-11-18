@@ -61,9 +61,10 @@ public:
     Vec3_t get_delta_velocity_on_bias(const imu::bias& b);
     Vec3_t get_delta_position_on_bias(const imu::bias& b);
 
+    MatRC_t<15, 15> get_information();
+
     double dt_;
     MatRC_t<15, 15> covariance_;
-    MatRC_t<15, 15> information_;
     Mat66_t initial_covariance_;
     Mat66_t bias_covariance_;
     bias b_;
