@@ -1,4 +1,6 @@
+#include "openvslam/imu/preintegrator.h"
 #include "openvslam/imu/preintegrated.h"
+#include "openvslam/imu/config.h"
 
 #include <gtest/gtest.h>
 
