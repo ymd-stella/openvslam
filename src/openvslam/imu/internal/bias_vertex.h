@@ -29,18 +29,13 @@ inline bias_vertex::bias_vertex()
 
 inline bool bias_vertex::read(std::istream& is) {
     Vec3_t est;
-    for (unsigned int i = 0; i < est.size(); ++i) {
-        is >> est(i);
-    }
+    read_matrix(is, est);
     setEstimate(est);
     return true;
 }
 
 inline bool bias_vertex::write(std::ostream& os) const {
-    const auto est = estimate();
-    for (unsigned int i = 0; i < est.size(); ++i) {
-        os << est[i] << " ";
-    }
+    write_matrix(os, estimate());
     return os.good();
 }
 

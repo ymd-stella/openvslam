@@ -29,13 +29,15 @@ inline gravity_dir_vertex::gravity_dir_vertex()
     : g2o::BaseVertex<2, Mat33_t>() {}
 
 inline bool gravity_dir_vertex::read(std::istream& is) {
-    (void)is;
-    return false;
+    Mat33_t est;
+    read_matrix(is, est);
+    setEstimate(est);
+    return true;
 }
 
 inline bool gravity_dir_vertex::write(std::ostream& os) const {
-    (void)os;
-    return false;
+    write_matrix(os, estimate());
+    return os.good();
 }
 
 inline void gravity_dir_vertex::setToOriginImpl() {

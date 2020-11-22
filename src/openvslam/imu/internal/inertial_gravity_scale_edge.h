@@ -19,7 +19,7 @@ namespace openvslam {
 namespace imu {
 namespace internal {
 
-class inertial_gravity_scale_edge final : public g2o::BaseMultiEdge<9, VecR_t<9>> {
+class inertial_gravity_scale_edge final : public g2o::BaseMultiEdge<9, std::shared_ptr<preintegrated>> {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -32,27 +32,68 @@ public:
     void computeError() override;
 
     void linearizeOplus() override;
-
-    const Vec3_t jacob_rotation_gyr, jacob_velocity_gyr, jacob_position_gyr;
-    const Vec3_t jacob_velocity_acc, jacob_position_acc;
-    std::shared_ptr<preintegrated> imu_preintegrated_ = nullptr;
     Vec3_t gravity;
 };
 
 inline inertial_gravity_scale_edge::inertial_gravity_scale_edge()
-    : g2o::BaseMultiEdge<9, VecR_t<9>>() {
+    : g2o::BaseMultiEdge<9, std::shared_ptr<preintegrated>>() {
     resize(8);
     gravity << 0, 0, -imu::constant::gravity();
 }
 
 inline bool inertial_gravity_scale_edge::read(std::istream& is) {
-    (void)is;
-    return false;
+    double dt;
+    MatRC_t<15, 15> covariance;
+    Vec3_t acc;
+    Vec3_t gyr;
+    Mat33_t delta_rotation;
+    Vec3_t delta_velocity;
+    Vec3_t delta_position;
+    Mat33_t jacob_rotation_gyr;
+    Mat33_t jacob_velocity_gyr;
+    Mat33_t jacob_velocity_acc;
+    Mat33_t jacob_position_gyr;
+    Mat33_t jacob_position_acc;
+    is >> dt;
+    read_matrix(is, covariance);
+    read_matrix(is, acc);
+    read_matrix(is, gyr);
+    read_matrix(is, delta_rotation);
+    read_matrix(is, delta_velocity);
+    read_matrix(is, delta_position);
+    read_matrix(is, jacob_rotation_gyr);
+    read_matrix(is, jacob_velocity_gyr);
+    read_matrix(is, jacob_velocity_acc);
+    read_matrix(is, jacob_position_gyr);
+    read_matrix(is, jacob_position_acc);
+    _measurement = eigen_alloc_shared<preintegrated>(dt, covariance, bias(acc, gyr), delta_rotation, delta_velocity, delta_position,
+                                                     jacob_rotation_gyr, jacob_velocity_gyr, jacob_velocity_acc, jacob_position_gyr, jacob_position_acc);
+    for (unsigned int i = 0; i < Dimension; ++i) {
+        for (unsigned int j = i; j < Dimension; ++j) {
+            is >> information()(i, j);
+            if (i != j) {
+                information()(j, i) = information()(i, j);
+            }
+        }
+    }
+    return true;
 }
 
 inline bool inertial_gravity_scale_edge::write(std::ostream& os) const {
-    (void)os;
-    return false;
+    os << _measurement->dt_ << " ";
+    write_matrix(os, _measurement->covariance_);
+    write_matrix(os, _measurement->b_.acc_);
+    write_matrix(os, _measurement->b_.gyr_);
+    write_matrix(os, _measurement->delta_rotation_);
+    write_matrix(os, _measurement->delta_velocity_);
+    write_matrix(os, _measurement->delta_position_);
+    write_matrix(os, _measurement->jacob_rotation_gyr_);
+    write_matrix(os, _measurement->jacob_velocity_gyr_);
+    write_matrix(os, _measurement->jacob_velocity_acc_);
+    write_matrix(os, _measurement->jacob_position_gyr_);
+    write_matrix(os, _measurement->jacob_position_acc_);
+    write_matrix(os, information());
+    return os.good();
 }
 
 inline void inertial_gravity_scale_edge::computeError() {
@@ -66,10 +107,10 @@ inline void inertial_gravity_scale_edge::computeError() {
     const auto scale_vtx = static_cast<const scale_vertex*>(_vertices[7]);
 
     const bias b(acc_bias_vtx->estimate(), gyr_bias_vtx->estimate());
-    const Mat33_t delta_rotation = imu_preintegrated_->get_delta_rotation_on_bias(b);
-    const Vec3_t delta_velocity = imu_preintegrated_->get_delta_velocity_on_bias(b);
-    const Vec3_t delta_position = imu_preintegrated_->get_delta_position_on_bias(b);
-    const double dt = imu_preintegrated_->dt_;
+    const Mat33_t delta_rotation = _measurement->get_delta_rotation_on_bias(b);
+    const Vec3_t delta_velocity = _measurement->get_delta_velocity_on_bias(b);
+    const Vec3_t delta_position = _measurement->get_delta_position_on_bias(b);
+    const double dt = _measurement->dt_;
 
     const Mat33_t Riw1 = keyfrm_vtx1->estimate().rotation().toRotationMatrix();
     const Mat33_t Rwi1 = Riw1.transpose();
@@ -102,14 +143,14 @@ inline void inertial_gravity_scale_edge::linearizeOplus() {
     const auto scale_vtx = static_cast<const scale_vertex*>(_vertices[7]);
 
     const imu::bias b(acc_bias_vtx->estimate(), gyr_bias_vtx->estimate());
-    const imu::bias& b0 = imu_preintegrated_->b_;
+    const imu::bias& b0 = _measurement->b_;
     const Vec3_t delta_bias_gyr = b.gyr_ - b0.gyr_;
 
-    const Mat33_t jacob_rotation_gyr = imu_preintegrated_->jacob_rotation_gyr_;
-    const Mat33_t jacob_velocity_gyr = imu_preintegrated_->jacob_velocity_gyr_;
-    const Mat33_t jacob_position_gyr = imu_preintegrated_->jacob_position_gyr_;
-    const Mat33_t jacob_velocity_acc = imu_preintegrated_->jacob_velocity_acc_;
-    const Mat33_t jacob_position_acc = imu_preintegrated_->jacob_position_acc_;
+    const Mat33_t jacob_rotation_gyr = _measurement->jacob_rotation_gyr_;
+    const Mat33_t jacob_velocity_gyr = _measurement->jacob_velocity_gyr_;
+    const Mat33_t jacob_position_gyr = _measurement->jacob_position_gyr_;
+    const Mat33_t jacob_velocity_acc = _measurement->jacob_velocity_acc_;
+    const Mat33_t jacob_position_acc = _measurement->jacob_position_acc_;
 
     const Mat33_t Riw1 = keyfrm_vtx1->estimate().rotation().toRotationMatrix();
     const Mat33_t Rwi1 = Riw1.transpose();
@@ -131,10 +172,10 @@ inline void inertial_gravity_scale_edge::linearizeOplus() {
     const Vec3_t v1 = velocity_vtx1->estimate();
     const Vec3_t v2 = velocity_vtx2->estimate();
 
-    const Mat33_t delta_rotation = imu_preintegrated_->get_delta_rotation_on_bias(b);
+    const Mat33_t delta_rotation = _measurement->get_delta_rotation_on_bias(b);
     const Mat33_t error_rotation = delta_rotation.transpose() * Riw1 * Rwi2;
     const Mat33_t inv_right_jacobian = util::converter::inverse_right_jacobian_so3(util::converter::log_so3(error_rotation));
-    const double dt = imu_preintegrated_->dt_;
+    const double dt = _measurement->dt_;
 
     // The reference is "On-Manifold Preintegration for Real-Time Visual-Inertial Odometry", Appendix C
     // Jacobians wrt Pose 1

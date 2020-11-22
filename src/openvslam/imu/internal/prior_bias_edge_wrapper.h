@@ -30,7 +30,7 @@ inline prior_bias_edge_wrapper::prior_bias_edge_wrapper(double info_prior, bias_
     // 拘束条件を設定
     auto edge = new prior_bias_edge();
     edge->setInformation(info_prior * Mat33_t::Identity());
-    edge->prior_bias_ = Vec3_t::Zero();
+    edge->setMeasurement(Vec3_t::Zero());
     edge->setVertex(0, bias_vtx);
     edge_ = edge;
 }

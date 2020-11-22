@@ -28,11 +28,9 @@ inline velocity_vertex::velocity_vertex()
     : g2o::BaseVertex<3, Vec3_t>() {}
 
 inline bool velocity_vertex::read(std::istream& is) {
-    Vec3_t estimate;
-    for (unsigned int i = 0; i < estimate.size(); ++i) {
-        is >> estimate(i);
-    }
-    setEstimate(estimate);
+    Vec3_t est;
+    read_matrix(is, est);
+    setEstimate(est);
     return true;
 }
 

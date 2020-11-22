@@ -20,8 +20,6 @@ public:
     void computeError() override;
 
     void linearizeOplus() override;
-
-    Vec3_t prior_bias_;
 };
 
 inline prior_bias_edge::prior_bias_edge()
@@ -29,18 +27,27 @@ inline prior_bias_edge::prior_bias_edge()
 }
 
 inline bool prior_bias_edge::read(std::istream& is) {
-    (void)is;
-    return false;
+    read_matrix(is, _measurement);
+    for (unsigned int i = 0; i < Dimension; ++i) {
+        for (unsigned int j = i; j < Dimension; ++j) {
+            is >> information()(i, j);
+            if (i != j) {
+                information()(j, i) = information()(i, j);
+            }
+        }
+    }
+    return true;
 }
 
 inline bool prior_bias_edge::write(std::ostream& os) const {
-    (void)os;
-    return false;
+    write_matrix(os, _measurement);
+    write_matrix(os, information());
+    return os.good();
 }
 
 inline void prior_bias_edge::computeError() {
     const auto bias_vtx = static_cast<const bias_vertex*>(_vertices[0]);
-    _error = prior_bias_ - bias_vtx->estimate();
+    _error = _measurement - bias_vtx->estimate();
 }
 
 inline void prior_bias_edge::linearizeOplus() {
