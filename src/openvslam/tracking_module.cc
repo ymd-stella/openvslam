@@ -199,7 +199,7 @@ void tracking_module::preintegrate_imu() {
     if (inertial_ref_keyfrm_) {
         b = inertial_ref_keyfrm_->imu_bias_;
     }
-    auto imu_preintegrated = std::make_shared<imu::preintegrator>(b, curr_frm_.imu_config_);
+    auto imu_preintegrated = eigen_alloc_shared<imu::preintegrator>(b, curr_frm_.imu_config_);
 
     for (unsigned int i = 0; i < n - 1; i++) {
         double dt;
@@ -327,7 +327,7 @@ void tracking_module::track() {
 
 bool tracking_module::initialize() {
     if (cfg_->imu_config_ && initializer_.get_state() == module::initializer_state_t::NotReady) {
-        imu_preintegrator_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrator>(imu::bias(), curr_frm_.imu_config_);
+        imu_preintegrator_from_inertial_ref_keyfrm_ = eigen_alloc_shared<imu::preintegrator>(imu::bias(), curr_frm_.imu_config_);
     }
 
     // try to initialize with the current frame
@@ -361,7 +361,7 @@ bool tracking_module::initialize() {
     }
     if (cfg_->imu_config_) {
         inertial_ref_keyfrm_->imu_preintegrator_from_inertial_ref_keyfrm_ = imu_preintegrator_from_inertial_ref_keyfrm_;
-        imu_preintegrator_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrator>(imu::bias(), curr_frm_.imu_config_);
+        imu_preintegrator_from_inertial_ref_keyfrm_ = eigen_alloc_shared<imu::preintegrator>(imu::bias(), curr_frm_.imu_config_);
     }
     // succeeded
     return true;
@@ -605,7 +605,7 @@ void tracking_module::insert_new_keyframe() {
             ref_keyfrm->inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
             inertial_ref_keyfrm_->inertial_referrer_keyfrm_ = ref_keyfrm;
             inertial_ref_keyfrm_ = ref_keyfrm;
-            imu_preintegrator_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrator>(
+            imu_preintegrator_from_inertial_ref_keyfrm_ = eigen_alloc_shared<imu::preintegrator>(
                 curr_frm_.imu_bias_,
                 curr_frm_.imu_config_);
         }

@@ -25,7 +25,7 @@ TEST(data, reintegrate) {
     // gyr bias random walk [(rad/s^2]/sqrt(Hz)]
     const double rw_gyr_bias = 1.9393e-05;
 
-    const auto cfg = std::make_shared<imu::config>(name, rate_hz, rel_pose_ic, ns_acc, ns_gyr, rw_acc_bias, rw_gyr_bias);
+    const auto cfg = eigen_alloc_shared<imu::config>(name, rate_hz, rel_pose_ic, ns_acc, ns_gyr, rw_acc_bias, rw_gyr_bias);
 
     {
         imu::preintegrator p(imu::bias(), cfg);
