@@ -114,7 +114,7 @@ void preintegrated::integrate(const Vec3_t& acc, const Vec3_t& gyr, const double
     jacob_velocity_gyr_ = jacob_velocity_gyr_ - delta_rotation_ * dt * w_acc * jacob_rotation_gyr_;
 
     // (33)
-    const Vec3_t v = (unbiased_gyr - b_.gyr_) * dt;
+    const Vec3_t v = unbiased_gyr * dt;
     Mat33_t delta_rotation = util::converter::exp_so3(v);
     Mat33_t right_jacobian = util::converter::right_jacobian_so3(v);
 
