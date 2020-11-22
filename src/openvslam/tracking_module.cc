@@ -12,7 +12,8 @@
 #include "openvslam/module/local_map_updater.h"
 #include "openvslam/util/image_converter.h"
 #include "openvslam/imu/bias.h"
-#include "openvslam/imu/preintegrated.h"
+#include "openvslam/imu/preintegrator.h"
+#include "openvslam/imu/config.h"
 #include "openvslam/imu/imu_util.h"
 
 #include <chrono>
@@ -165,7 +166,7 @@ void tracking_module::reset() {
 
     is_last_frm_valid_ = false;
     inertial_ref_keyfrm_ = nullptr;
-    imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
+    imu_preintegrator_from_inertial_ref_keyfrm_ = nullptr;
 
     tracking_state_ = tracker_state_t::NotInitialized;
 }
@@ -198,7 +199,7 @@ void tracking_module::preintegrate_imu() {
     if (inertial_ref_keyfrm_) {
         b = inertial_ref_keyfrm_->imu_bias_;
     }
-    auto imu_preintegrated = std::make_shared<imu::preintegrated>(b, curr_frm_.imu_config_);
+    auto imu_preintegrated = std::make_shared<imu::preintegrator>(b, curr_frm_.imu_config_);
 
     for (unsigned int i = 0; i < n - 1; i++) {
         double dt;
@@ -208,15 +209,15 @@ void tracking_module::preintegrate_imu() {
                                       last_frm_.timestamp_, curr_frm_.timestamp_,
                                       acc, gyr, dt);
 
-        if (imu_preintegrated_from_inertial_ref_keyfrm_) {
-            imu_preintegrated_from_inertial_ref_keyfrm_->integrate_new_measurement(acc, gyr, dt);
+        if (imu_preintegrator_from_inertial_ref_keyfrm_) {
+            imu_preintegrator_from_inertial_ref_keyfrm_->integrate_new_measurement(acc, gyr, dt);
         }
         imu_preintegrated->integrate_new_measurement(acc, gyr, dt);
     }
 
-    curr_frm_.imu_preintegrated_ = imu_preintegrated;
-    if (imu_preintegrated_from_inertial_ref_keyfrm_) {
-        curr_frm_.imu_preintegrated_from_inertial_ref_keyfrm_ = imu_preintegrated_from_inertial_ref_keyfrm_;
+    curr_frm_.imu_preintegrator_ = imu_preintegrated;
+    if (imu_preintegrator_from_inertial_ref_keyfrm_) {
+        curr_frm_.imu_preintegrator_from_inertial_ref_keyfrm_ = imu_preintegrator_from_inertial_ref_keyfrm_;
         if (inertial_ref_keyfrm_) {
             curr_frm_.inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
         }
@@ -326,7 +327,7 @@ void tracking_module::track() {
 
 bool tracking_module::initialize() {
     if (cfg_->imu_config_ && initializer_.get_state() == module::initializer_state_t::NotReady) {
-        imu_preintegrated_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrated>(imu::bias(), curr_frm_.imu_config_);
+        imu_preintegrator_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrator>(imu::bias(), curr_frm_.imu_config_);
     }
 
     // try to initialize with the current frame
@@ -359,8 +360,8 @@ bool tracking_module::initialize() {
         }
     }
     if (cfg_->imu_config_) {
-        inertial_ref_keyfrm_->imu_preintegrated_from_inertial_ref_keyfrm_ = imu_preintegrated_from_inertial_ref_keyfrm_;
-        imu_preintegrated_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrated>(imu::bias(), curr_frm_.imu_config_);
+        inertial_ref_keyfrm_->imu_preintegrator_from_inertial_ref_keyfrm_ = imu_preintegrator_from_inertial_ref_keyfrm_;
+        imu_preintegrator_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrator>(imu::bias(), curr_frm_.imu_config_);
     }
     // succeeded
     return true;
@@ -604,7 +605,7 @@ void tracking_module::insert_new_keyframe() {
             ref_keyfrm->inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
             inertial_ref_keyfrm_->inertial_referrer_keyfrm_ = ref_keyfrm;
             inertial_ref_keyfrm_ = ref_keyfrm;
-            imu_preintegrated_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrated>(
+            imu_preintegrator_from_inertial_ref_keyfrm_ = std::make_shared<imu::preintegrator>(
                 curr_frm_.imu_bias_,
                 curr_frm_.imu_config_);
         }

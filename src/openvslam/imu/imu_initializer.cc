@@ -1,6 +1,7 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
 #include "openvslam/imu/imu_initializer.h"
+#include "openvslam/imu/preintegrator.h"
 #include "openvslam/imu/internal/velocity_vertex_container.h"
 #include "openvslam/imu/internal/bias_vertex_container.h"
 #include "openvslam/imu/internal/prior_bias_edge_wrapper.h"
@@ -102,7 +103,7 @@ bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Ma
         if (!keyfrm->inertial_ref_keyfrm_) {
             continue;
         }
-        assert(keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_);
+        assert(keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_);
         auto ref_keyfrm = keyfrm->inertial_ref_keyfrm_;
 
         auto imu_pose_vtx1 = imu_pose_vtx_container.get_vertex(ref_keyfrm);
@@ -110,7 +111,7 @@ bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Ma
         auto imu_pose_vtx2 = imu_pose_vtx_container.get_vertex(keyfrm);
         auto velocity_vtx2 = velocity_vtx_container.get_vertex(keyfrm);
         imu::internal::inertial_gravity_scale_edge_wrapper inertial_gravity_scale_edge_wrap(
-            keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_,
+            keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->preintegrated_,
             acc_bias_vtx, gyr_bias_vtx, imu_pose_vtx1, velocity_vtx1,
             imu_pose_vtx2, velocity_vtx2, gravity_dir_vtx, scale_vtx);
 
@@ -149,8 +150,8 @@ bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Ma
         double tolerance = 0.01;
         if ((keyfrm->imu_bias_.gyr_ - b.gyr_).norm() > tolerance) {
             keyfrm->imu_bias_ = b;
-            if (keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_) {
-                keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_->reintegrate();
+            if (keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_) {
+                keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->reintegrate();
             }
         }
         else {

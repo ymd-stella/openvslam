@@ -2,6 +2,8 @@
 #include "openvslam/imu/data.h"
 #include "openvslam/data/keyframe.h"
 #include "openvslam/util/converter.h"
+#include "openvslam/imu/preintegrator.h"
+#include "openvslam/imu/preintegrated.h"
 
 namespace openvslam {
 namespace imu {
@@ -54,14 +56,14 @@ std::vector<openvslam::data::keyframe*> imu_util::gather_intertial_ref_keyframes
 
 void imu_util::compute_velocity(std::vector<openvslam::data::keyframe*>& keyfrms) {
     for (const auto& keyfrm : keyfrms) {
-        assert(keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_);
+        assert(keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_);
         assert(keyfrm->inertial_ref_keyfrm_);
 
         const Mat44_t pose1_wi = keyfrm->inertial_ref_keyfrm_->get_imu_pose_inv();
         const Vec3_t twi1 = pose1_wi.block<3, 1>(0, 3);
         const Mat44_t pose2_wi = keyfrm->get_imu_pose_inv();
         const Vec3_t twi2 = pose2_wi.block<3, 1>(0, 3);
-        const Vec3_t velocity = (twi2 - twi1) / keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_->dt_;
+        const Vec3_t velocity = (twi2 - twi1) / keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->preintegrated_->dt_;
         keyfrm->inertial_ref_keyfrm_->velocity_ = velocity;
     }
 }
@@ -69,12 +71,12 @@ void imu_util::compute_velocity(std::vector<openvslam::data::keyframe*>& keyfrms
 Mat33_t imu_util::compute_gravity_dir(std::vector<openvslam::data::keyframe*>& keyfrms) {
     Vec3_t integrated_gravity = Vec3_t::Zero();
     for (const auto keyfrm : keyfrms) {
-        assert(keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_);
+        assert(keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_);
         assert(keyfrm->inertial_ref_keyfrm_);
 
         const Mat44_t pose1_wi = keyfrm->inertial_ref_keyfrm_->get_imu_pose_inv();
         const Mat33_t Rwi1 = pose1_wi.block<3, 3>(0, 0);
-        integrated_gravity -= Rwi1 * keyfrm->imu_preintegrated_from_inertial_ref_keyfrm_->delta_velocity_;
+        integrated_gravity -= Rwi1 * keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->preintegrated_->delta_velocity_;
     }
 
     integrated_gravity = integrated_gravity / integrated_gravity.norm();

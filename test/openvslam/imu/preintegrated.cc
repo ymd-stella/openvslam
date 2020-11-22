@@ -28,7 +28,7 @@ TEST(data, reintegrate) {
     const auto cfg = std::make_shared<imu::config>(name, rate_hz, rel_pose_ic, ns_acc, ns_gyr, rw_acc_bias, rw_gyr_bias);
 
     {
-        imu::preintegrated p(imu::bias(), cfg);
+        imu::preintegrator p(imu::bias(), cfg);
         double dT = 0.25;
         MatRC_t<15, 15> C;
         C << 7.225e-09, -1.27462e-16, 6.0359e-17, -7.31754e-11, 4.33882e-09, -1.67116e-10, -6.12624e-12, 3.48724e-10, -9.93679e-12, 0, 0, 0, 0, 0, 0, -1.27394e-16, 7.225e-09, -5.36869e-16, -3.69204e-09, -2.7057e-11, -9.38122e-09, -2.96494e-10, -2.15074e-12, -7.5784e-10, 0, 0, 0, 0, 0, 0, 5.89788e-17, -5.36918e-16, 7.225e-09, 7.40036e-12, 9.10212e-09, 5.82739e-11, -2.97597e-12, 7.35347e-10, 4.45787e-12, 0, 0, 0, 0, 0, 0, -7.31754e-11, -3.69204e-09, 7.40037e-12, 1.00251e-06, -4.61832e-11, 6.38393e-09, 1.25226e-07, -4.83166e-12, 5.78846e-10, 0, 0, 0, 0, 0, 0, 4.33882e-09, -2.70571e-11, 9.10212e-09, -4.61832e-11, 1.01875e-06, 1.81194e-11, -9.6421e-12, 1.267e-07, 3.78773e-12, 0, 0, 0, 0, 0, 0, -1.67116e-10, -9.38121e-09, 5.82739e-11, 6.38393e-09, 1.81194e-11, 1.01624e-06, 5.76379e-10, 1.88945e-12, 1.26474e-07, 0, 0, 0, 0, 0, 0, -6.12624e-12, -2.96494e-10, -2.97597e-12, 1.25226e-07, -9.64209e-12, 5.76379e-10, 2.08531e-08, -9.14081e-13, 5.58616e-11, 0, 0, 0, 0, 0, 0, 3.48724e-10, -2.15074e-12, 7.35346e-10, -4.83166e-12, 1.267e-07, 1.88946e-12, -9.14081e-13, 2.09959e-08, 3.57514e-13, 0, 0, 0, 0, 0, 0, -9.93678e-12, -7.5784e-10, 4.45787e-12, 5.78846e-10, 3.78774e-12, 1.26474e-07, 5.58616e-11, 3.57514e-13, 2.09741e-08, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3.76089e-06, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3.76089e-06, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3.76089e-06, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.09;
@@ -453,14 +453,14 @@ TEST(data, reintegrate) {
             p.measurements_.emplace_back(a, w, t);
         }
         p.reintegrate();
-        EXPECT_LT((p.jacob_rotation_gyr_ - JRg).cwiseAbs().sum(), 1e-5);
-        EXPECT_LT((p.jacob_velocity_gyr_ - JVg).cwiseAbs().sum(), 1e-5);
-        EXPECT_LT((p.jacob_velocity_acc_ - JVa).cwiseAbs().sum(), 1e-5);
-        EXPECT_LT((p.jacob_position_gyr_ - JPg).cwiseAbs().sum(), 1e-5);
-        EXPECT_LT((p.jacob_position_acc_ - JPa).cwiseAbs().sum(), 1e-5);
-        EXPECT_LT(std::abs(p.dt_ - dT), 1e-5);
-        EXPECT_LT((p.delta_rotation_ - dR).cwiseAbs().sum(), 1e-5);
-        EXPECT_LT((p.delta_velocity_ - dV).cwiseAbs().sum(), 1e-5);
-        EXPECT_LT((p.delta_position_ - dP).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT((p.preintegrated_->jacob_rotation_gyr_ - JRg).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT((p.preintegrated_->jacob_velocity_gyr_ - JVg).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT((p.preintegrated_->jacob_velocity_acc_ - JVa).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT((p.preintegrated_->jacob_position_gyr_ - JPg).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT((p.preintegrated_->jacob_position_acc_ - JPa).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT(std::abs(p.preintegrated_->dt_ - dT), 1e-5);
+        EXPECT_LT((p.preintegrated_->delta_rotation_ - dR).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT((p.preintegrated_->delta_velocity_ - dV).cwiseAbs().sum(), 1e-5);
+        EXPECT_LT((p.preintegrated_->delta_position_ - dP).cwiseAbs().sum(), 1e-5);
     }
 }

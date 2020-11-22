@@ -240,7 +240,7 @@ protected:
     //! inertial reference keyframe
     data::keyframe* inertial_ref_keyfrm_ = nullptr;
 
-    std::shared_ptr<imu::preintegrated> imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
+    std::shared_ptr<imu::preintegrator> imu_preintegrator_from_inertial_ref_keyfrm_ = nullptr;
 
     bool is_last_frm_valid_ = false;
 

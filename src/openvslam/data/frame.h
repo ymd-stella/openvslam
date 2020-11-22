@@ -5,7 +5,6 @@
 #include "openvslam/camera/base.h"
 #include "openvslam/util/converter.h"
 #include "openvslam/data/bow_vocabulary.h"
-#include "openvslam/imu/preintegrated.h"
 #include "openvslam/imu/bias.h"
 
 #include <vector>
@@ -23,6 +22,11 @@
 #endif
 
 namespace openvslam {
+
+namespace imu {
+class preintegrator;
+class config;
+} // namespace imu
 
 namespace camera {
 class base;
@@ -235,8 +239,8 @@ public:
     // ! inertial reference keyframe
     keyframe* inertial_ref_keyfrm_ = nullptr;
 
-    std::shared_ptr<imu::preintegrated> imu_preintegrated_from_inertial_ref_keyfrm_ = nullptr;
-    std::shared_ptr<imu::preintegrated> imu_preintegrated_ = nullptr;
+    std::shared_ptr<imu::preintegrator> imu_preintegrator_from_inertial_ref_keyfrm_ = nullptr;
+    std::shared_ptr<imu::preintegrator> imu_preintegrator_ = nullptr;
     imu::bias imu_bias_;
     std::shared_ptr<imu::config> imu_config_ = nullptr;
 

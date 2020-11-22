@@ -10,6 +10,8 @@
 #include "openvslam/data/bow_database.h"
 #include "openvslam/feature/orb_params.h"
 #include "openvslam/util/converter.h"
+#include "openvslam/imu/preintegrator.h"
+#include "openvslam/imu/config.h"
 
 #include <nlohmann/json.hpp>
 
@@ -37,7 +39,7 @@ keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
       level_sigma_sq_(frm.level_sigma_sq_), inv_level_sigma_sq_(frm.inv_level_sigma_sq_),
       // imu
       inertial_ref_keyfrm_(frm.inertial_ref_keyfrm_),
-      imu_preintegrated_from_inertial_ref_keyfrm_(frm.imu_preintegrated_from_inertial_ref_keyfrm_),
+      imu_preintegrator_from_inertial_ref_keyfrm_(frm.imu_preintegrator_from_inertial_ref_keyfrm_),
       imu_bias_(frm.imu_bias_),
       imu_config_(frm.imu_config_),
       // observations
@@ -432,8 +434,8 @@ void keyframe::prepare_for_erasing() {
     graph_node_->recover_spanning_connections();
 
     // update inertial references
-    if (inertial_referrer_keyfrm_ && inertial_ref_keyfrm_ && imu_preintegrated_from_inertial_ref_keyfrm_) {
-        inertial_referrer_keyfrm_->imu_preintegrated_from_inertial_ref_keyfrm_->merge_previous(*imu_preintegrated_from_inertial_ref_keyfrm_);
+    if (inertial_referrer_keyfrm_ && inertial_ref_keyfrm_ && imu_preintegrator_from_inertial_ref_keyfrm_) {
+        inertial_referrer_keyfrm_->imu_preintegrator_from_inertial_ref_keyfrm_->merge_previous(*imu_preintegrator_from_inertial_ref_keyfrm_);
         inertial_referrer_keyfrm_->inertial_ref_keyfrm_ = inertial_ref_keyfrm_;
         inertial_ref_keyfrm_->inertial_referrer_keyfrm_ = inertial_referrer_keyfrm_;
     }
