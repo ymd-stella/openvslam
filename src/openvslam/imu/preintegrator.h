@@ -46,7 +46,7 @@ public:
     Mat66_t initial_covariance_;
     Mat66_t bias_covariance_;
     std::shared_ptr<preintegrated> preintegrated_;
-    std::vector<measurement> measurements_;
+    eigen_alloc_vector<measurement> measurements_;
 };
 
 } // namespace imu
