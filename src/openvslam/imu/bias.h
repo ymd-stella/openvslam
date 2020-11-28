@@ -3,6 +3,8 @@
 
 #include "openvslam/type.h"
 
+#include <nlohmann/json_fwd.hpp>
+
 namespace openvslam {
 namespace imu {
 
@@ -16,6 +18,9 @@ public:
          const float bwx, const float bwy, const float bwz);
     bias(const Vec3_t& acc, const Vec3_t& gyr)
         : acc_(acc), gyr_(gyr) {}
+    explicit bias(const nlohmann::json& json_bias);
+
+    nlohmann::json to_json() const;
 
     Vec3_t acc_;
     Vec3_t gyr_;

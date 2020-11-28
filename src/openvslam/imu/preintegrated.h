@@ -6,6 +6,7 @@
 
 #include "openvslam/type.h"
 #include "openvslam/imu/bias.h"
+#include <nlohmann/json_fwd.hpp>
 
 namespace openvslam {
 namespace imu {
@@ -27,6 +28,7 @@ public:
         const Mat33_t& jacob_velocity_acc,
         const Mat33_t& jacob_position_gyr,
         const Mat33_t& jacob_position_acc);
+    explicit preintegrated(const nlohmann::json& json_preintegrated);
     void initialize();
 
     void integrate(const Vec3_t& acc, const Vec3_t& gyr, const double dt, const Mat66_t& initial_covariance, const Mat66_t& bias_covariance);
@@ -36,6 +38,8 @@ public:
     Vec3_t get_delta_position_on_bias(const imu::bias& b);
 
     MatRC_t<15, 15> get_information();
+
+    nlohmann::json to_json() const;
 
     double dt_;
     MatRC_t<15, 15> covariance_;

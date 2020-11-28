@@ -1,5 +1,7 @@
 #include "openvslam/imu/preintegrated.h"
 #include "openvslam/util/converter.h"
+#include "openvslam/data/common.h"
+#include <nlohmann/json.hpp>
 
 namespace openvslam {
 namespace imu {
@@ -24,6 +26,19 @@ preintegrated::preintegrated(
     : dt_(dt), covariance_(covariance), b_(b), delta_rotation_(delta_rotation), delta_velocity_(delta_velocity), delta_position_(delta_position),
       jacob_rotation_gyr_(jacob_rotation_gyr), jacob_velocity_gyr_(jacob_velocity_gyr), jacob_velocity_acc_(jacob_velocity_acc),
       jacob_position_gyr_(jacob_position_gyr), jacob_position_acc_(jacob_position_acc) {}
+
+preintegrated::preintegrated(const nlohmann::json& json_preintegrated)
+    : preintegrated(json_preintegrated.at("dt").get<double>(),
+                    data::convert_json_to_matrix<MatRC_t<15, 15>>(json_preintegrated.at("covariance")),
+                    bias(json_preintegrated.at("bias")),
+                    data::convert_json_to_matrix<Mat33_t>(json_preintegrated.at("delta_rotation")),
+                    data::convert_json_to_matrix<Vec3_t>(json_preintegrated.at("delta_velocity")),
+                    data::convert_json_to_matrix<Vec3_t>(json_preintegrated.at("delta_position")),
+                    data::convert_json_to_matrix<Mat33_t>(json_preintegrated.at("jacob_rotation_gyr")),
+                    data::convert_json_to_matrix<Mat33_t>(json_preintegrated.at("jacob_velocity_gyr")),
+                    data::convert_json_to_matrix<Mat33_t>(json_preintegrated.at("jacob_velocity_acc")),
+                    data::convert_json_to_matrix<Mat33_t>(json_preintegrated.at("jacob_position_gyr")),
+                    data::convert_json_to_matrix<Mat33_t>(json_preintegrated.at("jacob_position_acc"))) {}
 
 void preintegrated::initialize() {
     delta_rotation_.setIdentity();
@@ -115,5 +130,20 @@ MatRC_t<15, 15> preintegrated::get_information() {
     return information;
 }
 
+nlohmann::json preintegrated::to_json() const {
+    nlohmann::json json_preintegrated;
+    json_preintegrated["dt"] = dt_;
+    json_preintegrated["covariance"] = data::convert_matrix_to_json(covariance_);
+    json_preintegrated["bias"] = b_.to_json();
+    json_preintegrated["delta_rotation"] = data::convert_matrix_to_json(delta_rotation_);
+    json_preintegrated["delta_velocity"] = data::convert_matrix_to_json(delta_velocity_);
+    json_preintegrated["delta_position"] = data::convert_matrix_to_json(delta_position_);
+    json_preintegrated["jacob_rotation_gyr"] = data::convert_matrix_to_json(jacob_rotation_gyr_);
+    json_preintegrated["jacob_velocity_gyr"] = data::convert_matrix_to_json(jacob_velocity_gyr_);
+    json_preintegrated["jacob_velocity_acc"] = data::convert_matrix_to_json(jacob_velocity_acc_);
+    json_preintegrated["jacob_position_gyr"] = data::convert_matrix_to_json(jacob_position_gyr_);
+    json_preintegrated["jacob_position_acc"] = data::convert_matrix_to_json(jacob_position_acc_);
+    return json_preintegrated;
+}
 } // namespace imu
 } // namespace openvslam
