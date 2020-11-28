@@ -416,6 +416,8 @@ void map_database::apply_scale_and_gravity_direction(const Mat33_t& Rwg, const d
         lm->set_pos_in_world(scale * Tgw.block<3, 3>(0, 0) * lm->get_pos_in_world());
         lm->update_normal_and_depth();
     }
+
+    frm_stats_.apply_scale(scale);
 }
 
 } // namespace data
