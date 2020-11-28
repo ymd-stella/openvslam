@@ -6,6 +6,7 @@
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
