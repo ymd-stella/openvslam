@@ -195,7 +195,7 @@ void mapping_module::initialize_imu() {
     const auto all_keyfrms = map_db_->get_all_keyframes();
     const double info_prior_gyr = 1e2;
     const double info_prior_acc = is_monocular_ ? 1e10 : 1e5;
-    bool succeeded = imu_initializer.initialize(all_keyfrms, Rwg, scale, is_monocular_, false, info_prior_gyr, info_prior_acc);
+    bool succeeded = imu_initializer.initialize(all_keyfrms, Rwg, scale, is_monocular_, info_prior_gyr, info_prior_acc);
 
     if (!succeeded) {
         return;

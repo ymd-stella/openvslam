@@ -22,7 +22,7 @@ imu_initializer::imu_initializer(const unsigned int num_iter)
     : num_iter_(num_iter) {}
 
 bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Mat33_t& Rwg, double& scale,
-                                 bool is_monocular, bool fix_vel, float info_prior_gyr, float info_prior_acc) const {
+                                 bool is_monocular, float info_prior_gyr, float info_prior_acc) const {
     spdlog::info("imu initialization");
 
     // 1. Construct an optimizer
@@ -57,13 +57,13 @@ bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Ma
         auto imu_pose_vtx = imu_pose_vtx_container.create_vertex(keyfrm->id_, keyfrm->get_imu_pose(), true);
         optimizer.addVertex(imu_pose_vtx);
 
-        auto velocity_vtx = velocity_vtx_container.create_vertex(keyfrm, fix_vel);
+        auto velocity_vtx = velocity_vtx_container.create_vertex(keyfrm, false);
         optimizer.addVertex(velocity_vtx);
     }
 
-    auto gyr_bias_vtx = gyr_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.acc_, fix_vel);
+    auto gyr_bias_vtx = gyr_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.acc_, false);
     optimizer.addVertex(gyr_bias_vtx);
-    auto acc_bias_vtx = acc_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.gyr_, fix_vel);
+    auto acc_bias_vtx = acc_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.gyr_, false);
     optimizer.addVertex(acc_bias_vtx);
 
     // Gravity and scale
