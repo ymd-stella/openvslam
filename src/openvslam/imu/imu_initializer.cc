@@ -9,11 +9,12 @@
 #include "openvslam/imu/internal/scale_vertex.h"
 #include "openvslam/imu/internal/inertial_gravity_scale_edge_wrapper.h"
 #include "openvslam/optimize/internal/se3/shot_vertex_container.h"
-#include "spdlog/spdlog.h"
 
 #include <g2o/core/block_solver.h>
 #include <g2o/solvers/eigen/linear_solver_eigen.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
+
+#include <spdlog/spdlog.h>
 
 namespace openvslam {
 namespace optimize {
@@ -23,8 +24,6 @@ imu_initializer::imu_initializer(const unsigned int num_iter)
 
 bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Mat33_t& Rwg, double& scale,
                                  bool is_monocular, float info_prior_gyr, float info_prior_acc) const {
-    spdlog::info("imu initialization");
-
     // 1. Construct an optimizer
 
     auto linear_solver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolverX::PoseMatrixType>>();

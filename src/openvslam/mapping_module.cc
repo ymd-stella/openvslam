@@ -179,6 +179,7 @@ void mapping_module::initialize_imu() {
     if (keyfrms.size() < min_keyfrms || cur_keyfrm_->timestamp_ - keyfrms.back()->timestamp_ < min_time) {
         return;
     }
+    spdlog::info("start imu initialization");
 
     // The oldest keyframe does not have inertial_ref_keyfrm, so exclude it.
     keyfrms.pop_back();
@@ -204,6 +205,7 @@ void mapping_module::initialize_imu() {
     map_db_->apply_scale_and_gravity_direction(Rwg, scale);
 
     imu_is_initialized_ = true;
+    spdlog::info("imu initialized");
 }
 
 void mapping_module::store_new_keyframe() {
