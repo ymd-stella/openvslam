@@ -61,9 +61,9 @@ bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Ma
         optimizer.addVertex(velocity_vtx);
     }
 
-    auto gyr_bias_vtx = gyr_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.acc_, false);
+    auto gyr_bias_vtx = gyr_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.gyr_, false);
     optimizer.addVertex(gyr_bias_vtx);
-    auto acc_bias_vtx = acc_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.gyr_, false);
+    auto acc_bias_vtx = acc_bias_vtx_container.create_vertex(keyfrms.back()->id_, keyfrms.back()->imu_bias_.acc_, false);
     optimizer.addVertex(acc_bias_vtx);
 
     // Gravity and scale
