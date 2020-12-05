@@ -40,12 +40,11 @@ preintegrator::preintegrator(const nlohmann::json& json_preintegrator) {
     }
 }
 
-void preintegrator::reintegrate() {
-    const auto tmp = measurements_;
-    measurements_.clear();
+void preintegrator::reintegrate(const imu::bias& b) {
+    preintegrated_->b_ = b;
     preintegrated_->initialize();
-    for (const auto& m : tmp) {
-        integrate_new_measurement(m);
+    for (const auto& m : measurements_) {
+        preintegrated_->integrate(m.acc_, m.gyr_, m.dt_, initial_covariance_, bias_covariance_);
     }
 }
 

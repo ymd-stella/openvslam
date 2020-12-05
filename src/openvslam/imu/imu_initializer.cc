@@ -151,7 +151,7 @@ bool imu_initializer::initialize(const std::vector<data::keyframe*>& keyfrms, Ma
         if ((keyfrm->imu_bias_.gyr_ - b.gyr_).norm() > tolerance) {
             keyfrm->imu_bias_ = b;
             if (keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_) {
-                keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->reintegrate();
+                keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->reintegrate(b);
             }
         }
         else {

@@ -41,7 +41,7 @@ public:
     preintegrator(const bias& b, const std::shared_ptr<config>& conf);
     preintegrator(const bias& b, const Mat66_t& initial_covariance, const Mat66_t& bias_covariance);
     explicit preintegrator(const nlohmann::json& json_preintegrator);
-    void reintegrate();
+    void reintegrate(const imu::bias& b);
     void merge_previous(const preintegrator& prev);
     void integrate_new_measurement(const measurement& m);
     void integrate_new_measurement(const Vec3_t& acc, const Vec3_t& gyr, const double dt);
