@@ -2,9 +2,11 @@
 #define OPENVSLAM_IMU_INTERNAL_GRAVITY_SCALE_EDGE_WRAPPER_H
 
 #include "openvslam/imu/preintegrated.h"
-#include "openvslam/imu/internal/inertial_gravity_scale_edge.h"
+#include "openvslam/imu/internal/inertial_gravity_scale_edge_on_imu.h"
+#include "openvslam/imu/internal/inertial_gravity_scale_edge_on_camera.h"
 
 #include <g2o/core/robust_kernel_impl.h>
+#include <g2o/core/base_multi_edge.h>
 
 namespace openvslam {
 namespace imu {
@@ -18,7 +20,8 @@ public:
                                         bias_vertex* acc_bias_vtx, bias_vertex* gyr_bias_vtx,
                                         optimize::internal::se3::shot_vertex* keyfrm_vtx1, velocity_vertex* velocity_vtx1,
                                         optimize::internal::se3::shot_vertex* keyfrm_vtx2, velocity_vertex* velocity_vtx2,
-                                        gravity_dir_vertex* gravity_dir_vtx, scale_vertex* scale_vtx);
+                                        gravity_dir_vertex* gravity_dir_vtx, scale_vertex* scale_vtx,
+                                        const std::shared_ptr<imu::config>& cfg = nullptr);
 
     virtual ~inertial_gravity_scale_edge_wrapper() = default;
 
@@ -41,9 +44,16 @@ inline inertial_gravity_scale_edge_wrapper::inertial_gravity_scale_edge_wrapper(
     optimize::internal::se3::shot_vertex* keyfrm_vtx2,
     velocity_vertex* velocity_vtx2,
     gravity_dir_vertex* gravity_dir_vtx,
-    scale_vertex* scale_vtx) {
+    scale_vertex* scale_vtx,
+    const std::shared_ptr<imu::config>& cfg) {
     // 拘束条件を設定
-    auto edge = new inertial_gravity_scale_edge();
+    g2o::BaseMultiEdge<9, std::shared_ptr<preintegrated>>* edge;
+    if (cfg) {
+        edge = new inertial_gravity_scale_edge_on_camera(cfg);
+    }
+    else {
+        edge = new inertial_gravity_scale_edge_on_imu();
+    }
 
     edge->setInformation(imu_preintegrated->get_information().block<9, 9>(0, 0));
     edge->setMeasurement(imu_preintegrated);

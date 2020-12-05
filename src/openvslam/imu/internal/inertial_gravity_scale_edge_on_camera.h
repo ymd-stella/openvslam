@@ -1,5 +1,5 @@
-#ifndef OPENVSLAM_IMU_INTERNAL_GRAVITY_SCALE_EDGE_H
-#define OPENVSLAM_IMU_INTERNAL_GRAVITY_SCALE_EDGE_H
+#ifndef OPENVSLAM_IMU_INTERNAL_GRAVITY_SCALE_EDGE_ON_CAMERA_H
+#define OPENVSLAM_IMU_INTERNAL_GRAVITY_SCALE_EDGE_ON_CAMERA_H
 
 #include "openvslam/type.h"
 #include "openvslam/util/converter.h"
@@ -19,11 +19,11 @@ namespace openvslam {
 namespace imu {
 namespace internal {
 
-class inertial_gravity_scale_edge final : public g2o::BaseMultiEdge<9, std::shared_ptr<preintegrated>> {
+class inertial_gravity_scale_edge_on_camera final : public g2o::BaseMultiEdge<9, std::shared_ptr<preintegrated>> {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    inertial_gravity_scale_edge();
+    inertial_gravity_scale_edge_on_camera(const std::shared_ptr<imu::config>& cfg);
 
     bool read(std::istream& is) override;
 
@@ -32,16 +32,19 @@ public:
     void computeError() override;
 
     void linearizeOplus() override;
+
     Vec3_t gravity;
+    std::shared_ptr<imu::config> cfg_;
 };
 
-inline inertial_gravity_scale_edge::inertial_gravity_scale_edge()
+inline inertial_gravity_scale_edge_on_camera::inertial_gravity_scale_edge_on_camera(const std::shared_ptr<imu::config>& cfg)
     : g2o::BaseMultiEdge<9, std::shared_ptr<preintegrated>>() {
     resize(8);
     gravity << 0, 0, -imu::constant::gravity();
+    cfg_ = cfg;
 }
 
-inline bool inertial_gravity_scale_edge::read(std::istream& is) {
+inline bool inertial_gravity_scale_edge_on_camera::read(std::istream& is) {
     double dt;
     MatRC_t<15, 15> covariance;
     Vec3_t acc;
@@ -79,7 +82,7 @@ inline bool inertial_gravity_scale_edge::read(std::istream& is) {
     return true;
 }
 
-inline bool inertial_gravity_scale_edge::write(std::ostream& os) const {
+inline bool inertial_gravity_scale_edge_on_camera::write(std::ostream& os) const {
     os << _measurement->dt_ << " ";
     write_matrix(os, _measurement->covariance_);
     write_matrix(os, _measurement->b_.acc_);
@@ -96,7 +99,7 @@ inline bool inertial_gravity_scale_edge::write(std::ostream& os) const {
     return os.good();
 }
 
-inline void inertial_gravity_scale_edge::computeError() {
+inline void inertial_gravity_scale_edge_on_camera::computeError() {
     const auto keyfrm_vtx1 = static_cast<const optimize::internal::se3::shot_vertex*>(_vertices[0]);
     const auto velocity_vtx1 = static_cast<const velocity_vertex*>(_vertices[1]);
     const auto gyr_bias_vtx = static_cast<const bias_vertex*>(_vertices[2]);
@@ -112,12 +115,16 @@ inline void inertial_gravity_scale_edge::computeError() {
     const Vec3_t delta_position = _measurement->get_delta_position_on_bias(b);
     const double dt = _measurement->dt_;
 
-    const Mat33_t Riw1 = keyfrm_vtx1->estimate().rotation().toRotationMatrix();
+    const Mat33_t Rcw1 = keyfrm_vtx1->estimate().rotation().toRotationMatrix();
+    const Mat33_t Riw1 = cfg_->get_rel_rot_ic() * Rcw1;
     const Mat33_t Rwi1 = Riw1.transpose();
-    const Vec3_t twi1 = -Rwi1 * keyfrm_vtx1->estimate().translation();
-    const Mat33_t Riw2 = keyfrm_vtx2->estimate().rotation().toRotationMatrix();
+    const Vec3_t tcw1 = keyfrm_vtx1->estimate().translation();
+    const Vec3_t twi1 = -Rwi1 * (cfg_->get_rel_rot_ic() * tcw1 + cfg_->get_rel_trans_ic());
+    const Mat33_t Rcw2 = keyfrm_vtx2->estimate().rotation().toRotationMatrix();
+    const Mat33_t Riw2 = cfg_->get_rel_rot_ic() * Rcw2;
     const Mat33_t Rwi2 = Riw2.transpose();
-    const Vec3_t twi2 = -Rwi2 * keyfrm_vtx2->estimate().translation();
+    const Vec3_t tcw2 = keyfrm_vtx2->estimate().translation();
+    const Vec3_t twi2 = -Rwi2 * (cfg_->get_rel_rot_ic() * tcw2 + cfg_->get_rel_trans_ic());
     const Vec3_t v1 = velocity_vtx1->estimate();
     const Vec3_t v2 = velocity_vtx2->estimate();
 
@@ -132,7 +139,7 @@ inline void inertial_gravity_scale_edge::computeError() {
     _error << error_rotation, error_velocity, error_position;
 }
 
-inline void inertial_gravity_scale_edge::linearizeOplus() {
+inline void inertial_gravity_scale_edge_on_camera::linearizeOplus() {
     const auto keyfrm_vtx1 = static_cast<const optimize::internal::se3::shot_vertex*>(_vertices[0]);
     const auto velocity_vtx1 = static_cast<const velocity_vertex*>(_vertices[1]);
     const auto gyr_bias_vtx = static_cast<const bias_vertex*>(_vertices[2]);
@@ -152,12 +159,16 @@ inline void inertial_gravity_scale_edge::linearizeOplus() {
     const Mat33_t jacob_velocity_acc = _measurement->jacob_velocity_acc_;
     const Mat33_t jacob_position_acc = _measurement->jacob_position_acc_;
 
-    const Mat33_t Riw1 = keyfrm_vtx1->estimate().rotation().toRotationMatrix();
+    const Mat33_t Rcw1 = keyfrm_vtx1->estimate().rotation().toRotationMatrix();
+    const Mat33_t Riw1 = cfg_->get_rel_rot_ic() * Rcw1;
     const Mat33_t Rwi1 = Riw1.transpose();
-    const Vec3_t twi1 = -Rwi1 * keyfrm_vtx1->estimate().translation();
-    const Mat33_t Riw2 = keyfrm_vtx2->estimate().rotation().toRotationMatrix();
+    const Vec3_t tcw1 = keyfrm_vtx1->estimate().translation();
+    const Vec3_t twi1 = -Rwi1 * (cfg_->get_rel_rot_ic() * tcw1 + cfg_->get_rel_trans_ic());
+    const Mat33_t Rcw2 = keyfrm_vtx2->estimate().rotation().toRotationMatrix();
+    const Mat33_t Riw2 = cfg_->get_rel_rot_ic() * Rcw2;
     const Mat33_t Rwi2 = Riw2.transpose();
-    const Vec3_t twi2 = -Rwi2 * keyfrm_vtx2->estimate().translation();
+    const Vec3_t tcw2 = keyfrm_vtx2->estimate().translation();
+    const Vec3_t twi2 = -Rwi2 * (cfg_->get_rel_rot_ic() * tcw2 + cfg_->get_rel_trans_ic());
 
     const Mat33_t Rwg = gravity_dir_vtx->estimate();
     MatRC_t<3, 2> Gm;
@@ -231,4 +242,4 @@ inline void inertial_gravity_scale_edge::linearizeOplus() {
 } // namespace imu
 } // namespace openvslam
 
-#endif // OPENVSLAM_IMU_INTERNAL_GRAVITY_SCALE_EDGE_H
+#endif // OPENVSLAM_IMU_INTERNAL_GRAVITY_SCALE_EDGE_ON_CAMERA_H
