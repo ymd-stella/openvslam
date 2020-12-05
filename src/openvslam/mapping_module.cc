@@ -181,22 +181,15 @@ void mapping_module::initialize_imu() {
     }
     spdlog::info("start imu initialization");
 
-    // The oldest keyframe does not have inertial_ref_keyfrm, so exclude it.
-    keyfrms.pop_back();
-
     imu::imu_util::compute_velocity(keyfrms);
-
-    // Set the current keyframe speed to the previous speed. This will be optimized later.
-    cur_keyfrm_->velocity_ = cur_keyfrm_->inertial_ref_keyfrm_->velocity_;
 
     Mat33_t Rwg = imu::imu_util::compute_gravity_dir(keyfrms);
 
     double scale = 1.0;
     const auto imu_initializer = optimize::imu_initializer(200);
-    const auto all_keyfrms = map_db_->get_all_keyframes();
     const double info_prior_gyr = 1e2;
     const double info_prior_acc = is_monocular_ ? 1e10 : 1e5;
-    bool succeeded = imu_initializer.initialize(all_keyfrms, Rwg, scale, is_monocular_, info_prior_gyr, info_prior_acc);
+    bool succeeded = imu_initializer.initialize(keyfrms, Rwg, scale, is_monocular_, info_prior_gyr, info_prior_acc);
 
     if (!succeeded) {
         return;

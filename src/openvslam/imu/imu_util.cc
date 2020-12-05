@@ -55,7 +55,8 @@ std::vector<openvslam::data::keyframe*> imu_util::gather_intertial_ref_keyframes
 }
 
 void imu_util::compute_velocity(std::vector<openvslam::data::keyframe*>& keyfrms) {
-    for (const auto& keyfrm : keyfrms) {
+    for (auto iter = keyfrms.cbegin(); iter != keyfrms.cend() - 1; ++iter) {
+        auto keyfrm = *iter;
         assert(keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_);
         assert(keyfrm->inertial_ref_keyfrm_);
 
@@ -66,11 +67,18 @@ void imu_util::compute_velocity(std::vector<openvslam::data::keyframe*>& keyfrms
         const Vec3_t velocity = (twi2 - twi1) / keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_->preintegrated_->dt_;
         keyfrm->inertial_ref_keyfrm_->velocity_ = velocity;
     }
+    // Set the current keyframe speed to the previous speed. This will be optimized later.
+    if (!keyfrms.empty()) {
+        if (keyfrms[0]->inertial_ref_keyfrm_) {
+            keyfrms[0]->velocity_ = keyfrms[0]->inertial_ref_keyfrm_->velocity_;
+        }
+    }
 }
 
 Mat33_t imu_util::compute_gravity_dir(std::vector<openvslam::data::keyframe*>& keyfrms) {
     Vec3_t integrated_gravity = Vec3_t::Zero();
-    for (const auto keyfrm : keyfrms) {
+    for (auto iter = keyfrms.cbegin(); iter != keyfrms.cend() - 1; ++iter) {
+        auto keyfrm = *iter;
         assert(keyfrm->imu_preintegrator_from_inertial_ref_keyfrm_);
         assert(keyfrm->inertial_ref_keyfrm_);
 
