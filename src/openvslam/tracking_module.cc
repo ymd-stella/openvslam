@@ -196,10 +196,10 @@ void tracking_module::preintegrate_imu() {
     }
 
     imu::bias b;
-    if (inertial_ref_keyfrm_) {
-        b = inertial_ref_keyfrm_->imu_bias_;
+    if (is_last_frm_valid_) {
+        b = last_frm_.imu_bias_;
     }
-    auto imu_preintegrated = eigen_alloc_shared<imu::preintegrator>(b, curr_frm_.imu_config_);
+    auto imu_preintegrator = eigen_alloc_shared<imu::preintegrator>(b, curr_frm_.imu_config_);
 
     for (unsigned int i = 0; i < n - 1; i++) {
         double dt;
@@ -212,10 +212,18 @@ void tracking_module::preintegrate_imu() {
         if (imu_preintegrator_from_inertial_ref_keyfrm_) {
             imu_preintegrator_from_inertial_ref_keyfrm_->integrate_new_measurement(acc, gyr, dt);
         }
-        imu_preintegrated->integrate_new_measurement(acc, gyr, dt);
+        imu_preintegrator->integrate_new_measurement(acc, gyr, dt);
     }
 
-    curr_frm_.imu_preintegrator_ = imu_preintegrated;
+    curr_frm_.imu_preintegrator_ = imu_preintegrator;
+    curr_frm_.imu_bias_ = b;
+    // Copy the velocity of the last frame as the initial value for optimization.
+    if (is_last_frm_valid_) {
+        curr_frm_.velocity_ = last_frm_.velocity_;
+    }
+    else {
+        curr_frm_.velocity_ = Vec3_t::Zero();
+    }
     if (imu_preintegrator_from_inertial_ref_keyfrm_) {
         curr_frm_.imu_preintegrator_from_inertial_ref_keyfrm_ = imu_preintegrator_from_inertial_ref_keyfrm_;
         if (inertial_ref_keyfrm_) {

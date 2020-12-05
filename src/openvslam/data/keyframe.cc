@@ -40,6 +40,7 @@ keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
       // imu
       inertial_ref_keyfrm_(frm.inertial_ref_keyfrm_),
       imu_preintegrator_from_inertial_ref_keyfrm_(frm.imu_preintegrator_from_inertial_ref_keyfrm_),
+      velocity_(frm.velocity_),
       imu_bias_(frm.imu_bias_),
       imu_config_(frm.imu_config_),
       // observations
