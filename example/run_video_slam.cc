@@ -6,6 +6,7 @@
 
 #include "openvslam/system.h"
 #include "openvslam/config.h"
+#include "openvslam/util/dualfisheye2equirectangular.h"
 
 #include <iostream>
 #include <chrono>
@@ -28,7 +29,13 @@
 void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
                    const std::string& vocab_file_path, const std::string& video_file_path, const std::string& mask_img_path,
                    const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
-                   const bool eval_log, const std::string& map_db_path) {
+                   const bool eval_log, const std::string& map_db_path,
+                   const bool from_dual_fisheye) {
+    std::shared_ptr<openvslam::util::dualfisheye2equirectangular> d2e;
+    if (from_dual_fisheye) {
+        d2e = std::make_shared<openvslam::util::dualfisheye2equirectangular>(cfg);
+    }
+
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
@@ -62,6 +69,11 @@ void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
             const auto tp_1 = std::chrono::steady_clock::now();
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
+                // convert dual fisheye to equirectangular
+                if (from_dual_fisheye) {
+                    d2e->convert(frame, frame);
+                }
+
                 // input the current frame and estimate the camera pose
                 SLAM.feed_monocular_frame(frame, timestamp, mask);
             }
@@ -163,6 +175,7 @@ int main(int argc, char* argv[]) {
     auto debug_mode = op.add<popl::Switch>("", "debug", "debug mode");
     auto eval_log = op.add<popl::Switch>("", "eval-log", "store trajectory and tracking times for evaluation");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
+    auto from_dual_fisheye = op.add<popl::Switch>("", "from-dual-fisheye", "convert dual fisheye to equirectangular");
     try {
         op.parse(argc, argv);
     }
@@ -212,7 +225,8 @@ int main(int argc, char* argv[]) {
     if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
         mono_tracking(cfg, vocab_file_path->value(), video_file_path->value(), mask_img_path->value(),
                       frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
-                      eval_log->is_set(), map_db_path->value());
+                      eval_log->is_set(), map_db_path->value(),
+                      from_dual_fisheye->is_set());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());
